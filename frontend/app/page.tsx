@@ -6,6 +6,8 @@ import { ComparisonTable } from "./components/comparison-table";
 import { RollingReturnsChart } from "./components/rolling-returns-chart";
 import { OverlapMatrix } from "./components/overlap-matrix";
 import { FundFilter } from "./components/fund-filter";
+import { ChatTab } from "./components/chat-tab";
+import { NavHistoryChart } from "./components/nav-history-chart";
 
 interface Fund {
   scheme_id: number;
@@ -28,6 +30,7 @@ export default function Dashboard() {
   const [riskAppetite, setRiskAppetite] = useState<"low" | "medium" | "high">("medium");
   const [category, setCategory] = useState("");
   const [selectedFunds, setSelectedFunds] = useState<number[]>([]);
+  const [activeTab, setActiveTab] = useState<"discover" | "chat">("discover");
 
   useEffect(() => {
     fetchFunds();
@@ -87,8 +90,20 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Tabs */}
+      <div className="max-w-7xl mx-auto px-6 pt-6">
+        <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
+          <button onClick={()=>setActiveTab("discover")} className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab==="discover" ? "bg-white dark:bg-gray-700 shadow text-indigo-600" : "text-gray-500"}`}>Discover</button>
+          <button onClick={()=>setActiveTab("chat")} className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab==="chat" ? "bg-white dark:bg-gray-700 shadow text-indigo-600" : "text-gray-500"}`}>GenAI Chat</button>
+        </div>
+      </div>
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {activeTab === "chat" ? (
+          <ChatTab />
+        ) : (
+          <>
         {/* Investment Parameters */}
         <section>
           <FundFilter
@@ -177,11 +192,25 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Historic NAV Chart for first selected fund */}
+        {selectedFunds.length >= 1 && (
+          <section className="glass-card p-6">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Historic NAV — Detailed History</h2>
+            {(() => {
+              const f = funds.find(x => x.scheme_id === selectedFunds[0]);
+              return f ? <NavHistoryChart schemeId={f.scheme_id} schemeName={f.scheme_name} /> : null;
+            })()}
+            <p className="text-xs text-gray-400 mt-2">Daily NAV from mfapi.in / AMFI • Use tabs 1Y/3Y/5Y • Data powers rolling returns, Sharpe, Sortino in OCS</p>
+          </section>
+        )}
+
         {/* Overlap Matrix */}
         {selectedFunds.length >= 2 && (
           <section>
             <OverlapMatrix fundIds={selectedFunds} />
           </section>
+        )}
+          </>
         )}
       </main>
 
