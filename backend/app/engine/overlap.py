@@ -45,10 +45,17 @@ def calculate_jaccard_similarity(set1: set, set2: set) -> float:
     return intersection / union if union > 0 else 0.0
 
 def get_scheme_holdings(scheme_id: int, db: Session = None) -> set:
-    """Get holdings for a scheme"""
-    # Placeholder - would fetch actual holdings data from database
-    # This would typically come from portfolio holdings table
-    return set()
+    """Get holdings for a scheme — now uses realistic synthetic holdings per category."""
+    try:
+        if db is None:
+            db = next(get_db())
+        scheme = db.query(MutualFundScheme).filter(MutualFundScheme.scheme_id == scheme_id).first()
+        if not scheme:
+            return set()
+        from app.engine.holdings import get_scheme_holdings_set
+        return get_scheme_holdings_set(scheme.scheme_id, scheme.category)
+    except Exception:
+        return set()
 
 def get_fund_overlap(scheme_id: int, top_n: int = 10, db: Session = None) -> Dict:
     """Get overlap for a specific scheme with top N funds"""

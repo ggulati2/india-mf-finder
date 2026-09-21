@@ -7,6 +7,7 @@ from app.etl.amfi_etl import ingest_amfi_nav_data, ingest_portfolio_holdings
 from app.worker import celery_app
 from app.api import schemes_router, recommendations_router, analytics_router, overlap_router
 from app.api.chat import router as chat_router
+from app.api.holistic import router as holistic_router
 import logging
 import asyncio
 
@@ -78,6 +79,9 @@ app.include_router(
 )
 app.include_router(
     chat_router, prefix="/api/v1/chat", tags=["GenAI Chat"]
+)
+app.include_router(
+    holistic_router, prefix="/api/v1/analytics", tags=["Holistic Analytics"]
 )
 
 @app.get("/api/v1/health")

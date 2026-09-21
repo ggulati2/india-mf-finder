@@ -8,6 +8,8 @@ import { OverlapMatrix } from "./components/overlap-matrix";
 import { FundFilter } from "./components/fund-filter";
 import { ChatTab } from "./components/chat-tab";
 import { NavHistoryChart } from "./components/nav-history-chart";
+import { HolisticPanel } from "./components/holistic-panel";
+import { SipCalculator } from "./components/sip-calculator";
 
 interface Fund {
   scheme_id: number;
@@ -192,16 +194,30 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Historic NAV Chart for first selected fund */}
+        {/* Historic NAV Chart + Holistic for first selected fund */}
         {selectedFunds.length >= 1 && (
-          <section className="glass-card p-6">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Historic NAV — Detailed History</h2>
-            {(() => {
-              const f = funds.find(x => x.scheme_id === selectedFunds[0]);
-              return f ? <NavHistoryChart schemeId={f.scheme_id} schemeName={f.scheme_name} /> : null;
-            })()}
-            <p className="text-xs text-gray-400 mt-2">Daily NAV from mfapi.in / AMFI • Use tabs 1Y/3Y/5Y • Data powers rolling returns, Sharpe, Sortino in OCS</p>
-          </section>
+          <>
+            <section className="glass-card p-6">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Historic NAV — Detailed History</h2>
+              {(() => {
+                const f = funds.find(x => x.scheme_id === selectedFunds[0]);
+                return f ? <NavHistoryChart schemeId={f.scheme_id} schemeName={f.scheme_name} /> : null;
+              })()}
+              <p className="text-xs text-gray-400 mt-2">Daily NAV from mfapi.in / AMFI • Use tabs 1Y/3Y/5Y • Data powers rolling returns, Sharpe, Sortino in OCS</p>
+            </section>
+            <section>
+              {(() => {
+                const f = funds.find(x => x.scheme_id === selectedFunds[0]);
+                return f ? <HolisticPanel schemeId={f.scheme_id} /> : null;
+              })()}
+            </section>
+            <section>
+              {(() => {
+                const f = funds.find(x => x.scheme_id === selectedFunds[0]);
+                return f ? <SipCalculator schemeId={f.scheme_id} /> : null;
+              })()}
+            </section>
+          </>
         )}
 
         {/* Overlap Matrix */}
