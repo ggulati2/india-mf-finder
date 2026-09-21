@@ -33,6 +33,11 @@ export default function Dashboard() {
   const [category, setCategory] = useState("");
   const [selectedFunds, setSelectedFunds] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState<"discover" | "chat">("discover");
+  const [sortBy, setSortBy] = useState<"overall" | "return" | "stars" | "steadiness">("overall");
+  const [minScore, setMinScore] = useState(0);
+  const [minReturn, setMinReturn] = useState(0);
+  const [minStars, setMinStars] = useState(1);
+  const [steadinessFilter, setSteadinessFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchFunds();
@@ -64,6 +69,26 @@ export default function Dashboard() {
     );
   };
 
+  // Filtering and sorting
+  const steadinessVal = (sortino: number) => (sortino >= 1 ? 2 : sortino >= 0.6 ? 1 : 0);
+  const filteredFunds = funds.filter((f) => {
+    const stars = Math.max(1, Math.round(f.ocs_score / 20));
+    const steady = steadinessVal(f.analytics.sortino_ratio);
+    const steadyFilterVal = steadinessFilter === "all" ? -1 : steadinessFilter === "very" ? 2 : steadinessFilter === "steady" ? 1 : 0;
+    return (
+      f.ocs_score >= minScore &&
+      f.analytics.cagr >= minReturn &&
+      stars >= minStars &&
+      (steadinessFilter === "all" || steady === steadyFilterVal || (steadinessFilter === "steady+" && steady >= 1))
+    );
+  });
+  const sortedFunds = [...filteredFunds].sort((a, b) => {
+    if (sortBy === "return") return b.analytics.cagr - a.analytics.cagr;
+    if (sortBy === "stars") return Math.round(b.ocs_score/20) - Math.round(a.ocs_score/20);
+    if (sortBy === "steadiness") return b.analytics.sortino_ratio - a.analytics.sortino_ratio;
+    return b.ocs_score - a.ocs_score;
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900/30">
       {/* Hero Header */}
@@ -81,12 +106,12 @@ export default function Dashboard() {
             </div>
             <span className="text-sm font-medium text-blue-100 tracking-wide uppercase">India Mutual Fund Finder</span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold mb-3 gradient-text">
+          <h1 className="text-5xl md:text-6xl font-bold mb-3 text-white">
             AI-Powered Fund
             <br />
-            <span className="text-white">Recommendations</span>
+            <span className="text-blue-100">Recommendations</span>
           </h1>
-          <p className="text-lg text-blue-100 max-w-2xl">
+          <p className="text-lg text-blue-50 max-w-2xl">
             Discover top-performing mutual funds with objective composite scoring, risk-adjusted analytics, and smart portfolio analysis.
           </p>
         </div>
@@ -118,11 +143,59 @@ export default function Dashboard() {
           />
         </section>
 
+        {/* Sort & Filter Sliders */}
+        <section className="glass-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0/24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
+            </div>
+            <h3 className="font-bold text-gray-800 dark:text-gray-100">Sort & Filter</h3>
+            <span className="text-xs text-gray-400 ml-2">{filteredFunds.length} of {funds.length} shown</span>
+            <button onClick={()=>{setMinScore(0);setMinReturn(0);setMinStars(1);setSteadinessFilter("all");setSortBy("overall");}} className="ml-auto text-xs text-indigo-600 hover:underline">Reset</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Sort by</label>
+              <select value={sortBy} onChange={(e)=>setSortBy(e.target.value as any)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+                <option value="overall">Overall Score</option>
+                <option value="stars">Star Rating</option>
+                <option value="return">Annual Return</option>
+                <option value="steadiness">Steadiness</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Overall Score: {minScore}</label>
+              <input type="range" min={0} max={100} value={minScore} onChange={(e)=>setMinScore(Number(e.target.value))} className="w-full accent-indigo-600" />
+              <div className="flex justify-between text-xs text-gray-400"><span>0</span><span>100</span></div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Stars: {minStars}★</label>
+              <input type="range" min={1} max={5} step={1} value={minStars} onChange={(e)=>setMinStars(Number(e.target.value))} className="w-full accent-amber-500" />
+              <div className="flex justify-between text-xs text-gray-400"><span>1★</span><span>5★</span></div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Annual Return: {minReturn}%</label>
+              <input type="range" min={0} max={25} value={minReturn} onChange={(e)=>setMinReturn(Number(e.target.value))} className="w-full accent-green-600" />
+              <div className="flex justify-between text-xs text-gray-400"><span>0%</span><span>25%</span></div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Steadiness</label>
+              <select value={steadinessFilter} onChange={(e)=>setSteadinessFilter(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+                <option value="all">All</option>
+                <option value="very">Very steady</option>
+                <option value="steady">Steady</option>
+                <option value="bumpy">Bumpy</option>
+                <option value="steady+">Steady+</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
         {/* Stats Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="glass-card p-4">
-            <p className="text-sm text-gray-500 mb-1">Funds Analyzed</p>
-            <p className="text-2xl font-bold text-blue-600">{funds.length}</p>
+            <p className="text-sm text-gray-500 mb-1">Funds Shown</p>
+            <p className="text-2xl font-bold text-blue-600">{sortedFunds.length}<span className="text-sm font-normal text-gray-400">/{funds.length}</span></p>
           </div>
           <div className="glass-card p-4">
             <p className="text-sm text-gray-500 mb-1">Mode</p>
@@ -143,7 +216,7 @@ export default function Dashboard() {
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Recommended Funds</h2>
-              <span className="text-sm text-gray-500">Click to select for comparison</span>
+              <span className="text-sm text-gray-500">Click to select for comparison • Sorted by {sortBy}</span>
             </div>
 
             {loading ? (
@@ -156,19 +229,19 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-            ) : funds.length === 0 ? (
+            ) : sortedFunds.length === 0 ? (
               <div className="glass-card p-12 text-center">
                 <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0/24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Funds Found</h3>
-                <p className="text-gray-500">Try adjusting your filters or investment parameters.</p>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Funds Match Filters</h3>
+                <p className="text-gray-500">Try lowering sliders or changing category.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {funds.map((fund) => (
+                {sortedFunds.map((fund) => (
                   <FundCard
                     key={fund.scheme_id}
                     fund={fund}
@@ -184,12 +257,12 @@ export default function Dashboard() {
           <div className="space-y-6">
             <div className="glass-card p-6">
               <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Portfolio Analytics</h2>
-              <RollingReturnsChart funds={funds} selectedFunds={selectedFunds} />
+              <RollingReturnsChart funds={sortedFunds} selectedFunds={selectedFunds} />
             </div>
 
             <div className="glass-card p-6">
               <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Fund Comparison</h2>
-              <ComparisonTable funds={funds} selectedFunds={selectedFunds} />
+              <ComparisonTable funds={sortedFunds} selectedFunds={selectedFunds} />
             </div>
           </div>
         </div>
@@ -200,20 +273,20 @@ export default function Dashboard() {
             <section className="glass-card p-6">
               <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Historic NAV — Detailed History</h2>
               {(() => {
-                const f = funds.find(x => x.scheme_id === selectedFunds[0]);
+                const f = sortedFunds.find(x => x.scheme_id === selectedFunds[0]) || funds.find(x => x.scheme_id === selectedFunds[0]);
                 return f ? <NavHistoryChart schemeId={f.scheme_id} schemeName={f.scheme_name} /> : null;
               })()}
               <p className="text-xs text-gray-400 mt-2">Daily NAV from mfapi.in / AMFI • Use tabs 1Y/3Y/5Y • Data powers rolling returns, Sharpe, Sortino in OCS</p>
             </section>
             <section>
               {(() => {
-                const f = funds.find(x => x.scheme_id === selectedFunds[0]);
+                const f = sortedFunds.find(x => x.scheme_id === selectedFunds[0]) || funds.find(x => x.scheme_id === selectedFunds[0]);
                 return f ? <HolisticPanel schemeId={f.scheme_id} /> : null;
               })()}
             </section>
             <section>
               {(() => {
-                const f = funds.find(x => x.scheme_id === selectedFunds[0]);
+                const f = sortedFunds.find(x => x.scheme_id === selectedFunds[0]) || funds.find(x => x.scheme_id === selectedFunds[0]);
                 return f ? <SipCalculator schemeId={f.scheme_id} /> : null;
               })()}
             </section>
