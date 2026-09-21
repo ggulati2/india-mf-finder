@@ -14,9 +14,11 @@ async def get_recommendations(
     horizon_years: int = Query(..., description="Investment horizon in years"),
     risk_appetite: str = Query(..., description="Low, Medium, or High"),
     category: Optional[str] = Query(None, description="Filter by category"),
+    complete_only: bool = Query(False, description="Only funds whose every data check passes"),
     db: Session = Depends(get_db)
 ):
     return get_top_funds(
+        complete_only=complete_only,
         investment_amount=investment_amount,
         investment_mode=investment_mode,
         horizon_years=horizon_years,

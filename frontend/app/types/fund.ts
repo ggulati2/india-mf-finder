@@ -11,6 +11,7 @@ export interface Fund {
   expense_ratio: number | null;
   sebi_category?: string;
   risk: { level: string; score: number; basis: string };
+  confidence?: { level: "Complete" | "Partial" | "Low"; checks: Record<string, boolean>; missing: string[]; not_available: string[] };
   data_as_of?: string | null;
   history_start?: string | null;
   ocs_score: number;

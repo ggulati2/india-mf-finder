@@ -53,6 +53,9 @@ async def get_holistic(scheme_id: int, years: int = Query(5), db: Session = Depe
                        float(vol5.volatility) if vol5 and vol5.volatility is not None else None,
                        float(vol5.max_drawdown) if vol5 and vol5.max_drawdown is not None else None)
 
+    from app.engine.confidence import data_confidence
+    conf = data_confidence(scheme, vol5, years)
+
     def n(x):
         return float(x) if x is not None else None
 
@@ -71,6 +74,7 @@ async def get_holistic(scheme_id: int, years: int = Query(5), db: Session = Depe
                       for k, v in analytics.items()},
         "risk": {**level, "max_drawdown": round(mdd, 2), "rolling_3y": rolling[:100],
                  "sip_xirr_5y": sip, "benchmark_nifty_cagr": bench_cagr},
+        "confidence": conf,
         "holdings": [],
         "sector_allocation": [],
         "holdings_note": "Portfolio holdings are not shown: there is no verified public data feed for them yet.",

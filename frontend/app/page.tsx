@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [minScore, setMinScore] = useState(0);
   const [minReturn, setMinReturn] = useState(0);
   const [minStars, setMinStars] = useState(1);
+  const [completeOnly, setCompleteOnly] = useState(false);
   const [steadinessFilter, setSteadinessFilter] = useState<string>("all");
 
   const fetchFunds = async () => {
@@ -38,6 +39,7 @@ export default function Dashboard() {
         horizon_years: String(horizonYears),
         risk_appetite: riskAppetite,
         category: category,
+        complete_only: String(completeOnly),
       });
       const response = await fetch(`/api/recommendations/funds?${params}`);
       const data = await response.json();
@@ -175,6 +177,7 @@ export default function Dashboard() {
             </div>
             <h3 className="font-bold text-gray-800 dark:text-gray-100">Sort & Filter</h3>
             <span className="text-xs text-gray-400 ml-2">{filteredFunds.length} of {funds.length} shown</span>
+            <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300" title="Hide funds where any data check is missing (for example expense ratio). Click Find Funds again to apply."><input type="checkbox" checked={completeOnly} onChange={(e)=>setCompleteOnly(e.target.checked)} />Only complete data</label>
             <button onClick={()=>{setMinScore(0);setMinReturn(0);setMinStars(1);setSteadinessFilter("all");setSortBy("overall");}} className="ml-auto text-xs text-indigo-600 hover:underline">Reset</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

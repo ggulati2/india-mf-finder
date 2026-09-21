@@ -22,6 +22,10 @@ export function FundCard({ fund, selected, onToggle }: FundCardProps) {
   const ter = fund.expense_ratio;
   const expCost = ter == null ? "Cost n/a" : ter <= 0.6 ? "Low cost" : ter <= 0.9 ? "Medium cost" : "High cost";
   const horizon = fund.analytics.time_horizon ?? 5;
+  const conf = fund.confidence;
+  const MISSING: Record<string, string> = { category_verified: "category", nav_validated: "NAV validation", history_covers_horizon: "full history", data_fresh: "fresh data", expense_ratio_known: "expense ratio" };
+  const confTitle = conf ? (conf.missing.length ? `Missing: ${conf.missing.map((m) => MISSING[m] ?? m).join(", ")}. ` : "All data checks passed. ") + `Not available for any fund: ${conf.not_available.join(", ")}.` : "";
+
   const getScoreColor = (score: number) => {
     if (score >= 75) return "text-green-600";
     if (score >= 50) return "text-blue-600";
@@ -60,6 +64,7 @@ export function FundCard({ fund, selected, onToggle }: FundCardProps) {
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${getScoreBadge(fund.ocs_score)}`}>
             Overall Score
           </span>
+          {conf && <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${conf.level === "Complete" ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200"}`} title={confTitle}>{conf.level === "Complete" ? "Data complete" : "Partial data"}</span>}
           <span className="text-xs text-amber-500" title="Higher is better — combines returns, risk, consistency, cost and trend (0-100)">{stars(fund.ocs_score)}</span>
         </div>
       </div>

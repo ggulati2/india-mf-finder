@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import logging
 from app.engine.risk_level import risk_level
+from app.engine.confidence import data_confidence
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,8 @@ def get_top_funds(
     horizon_years: int,
     risk_appetite: str,
     category: str = None,
-    db: Session = None
+    db: Session = None,
+    complete_only: bool = False
 ) -> list:
     """
     Get top fund recommendations based on investment parameters.
@@ -130,6 +132,10 @@ def get_top_funds(
             # Appetite gate: low -> up to Moderate, medium -> up to High, high -> anything
             max_risk = {'low': 3, 'medium': 5}.get(risk_appetite.lower(), 6)
             if risk['score'] > max_risk:
+                continue
+
+            confidence = data_confidence(scheme, analytics, horizon_years)
+            if confidence['level'] == 'Low' or (complete_only and confidence['level'] != 'Complete'):
                 continue
 
             # Get category scores for anti-bias normalization
@@ -171,6 +177,7 @@ def get_top_funds(
                 'expense_ratio': float(scheme.ter_pct) if scheme.ter_pct is not None else None,
                 'sebi_category': scheme.sebi_category,
                 'risk': risk,
+                'confidence': confidence,
                 'data_as_of': scheme.latest_nav_date.isoformat() if scheme.latest_nav_date else None,
                 'history_start': scheme.history_start.isoformat() if scheme.history_start else None,
                 'ocs_score': ocs_score,

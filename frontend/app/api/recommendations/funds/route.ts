@@ -9,10 +9,11 @@ export async function GET(request: NextRequest) {
   const horizonYears = searchParams.get("horizon_years") || "5";
   const riskAppetite = searchParams.get("risk_appetite") || "medium";
   const category = searchParams.get("category") || "";
+  const completeOnly = searchParams.get("complete_only") === "true" ? "true" : "false";
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/v1/recommendations/funds?investment_amount=${investmentAmount}&investment_mode=${investmentMode}&horizon_years=${horizonYears}&risk_appetite=${riskAppetite}&category=${category}`
+      `${API_BASE_URL}/api/v1/recommendations/funds?investment_amount=${investmentAmount}&investment_mode=${investmentMode}&horizon_years=${horizonYears}&risk_appetite=${riskAppetite}&category=${category}&complete_only=${completeOnly}`
     );
     const data = await response.json();
     return NextResponse.json(data);
