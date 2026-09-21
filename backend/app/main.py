@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.db.database import init_db, get_db
+from app.db.database import init_db, init_db_sync, get_db
 from app.db.models import MutualFundScheme, SchemeNAVData, SchemeAnalytics
 from app.etl.amfi_etl import ingest_amfi_nav_data, ingest_portfolio_holdings
 from app.worker import celery_app
@@ -12,30 +12,39 @@ import asyncio
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await asyncio.to_thread(init_db)
-    logger.info("Database initialized")
+    try:
+        init_db_sync()
+        logger.info("Database initialized")
+    except Exception as e:
+        logger.warning(f"Database not available: {e}. Running without DB.")
 
     # Schedule daily ETL jobs
-    from apscheduler.schedulers.background import BackgroundScheduler
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(
-        ingest_amfi_nav_data,
-        'cron',
-        hour=9,
-        minute=30,
-        id='amfi_nav_etl'
-    )
-    scheduler.add_job(
-        ingest_portfolio_holdings,
-        'cron',
-        day_of_month=1,
-        hour=10,
-        minute=0,
-        id='portfolio_etl'
-    )
-    scheduler.start()
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(
+            ingest_amfi_nav_data,
+            'cron',
+            hour=9,
+            minute=30,
+            id='amfi_nav_etl'
+        )
+        scheduler.add_job(
+            ingest_portfolio_holdings,
+            'cron',
+            day=1,
+            hour=10,
+            minute=0,
+            id='portfolio_etl'
+        )
+        scheduler.start()
+    except Exception as e:
+        logger.warning(f"Could not schedule ETL jobs: {e}")
 
     yield
 

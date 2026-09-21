@@ -16,7 +16,7 @@ async def get_recommendations(
     category: Optional[str] = Query(None, description="Filter by category"),
     db: Session = Depends(get_db)
 ):
-    return await get_top_funds(
+    return get_top_funds(
         investment_amount=investment_amount,
         investment_mode=investment_mode,
         horizon_years=horizon_years,
@@ -31,7 +31,7 @@ async def compare_schemes(
     db: Session = Depends(get_db)
 ):
     ids = [int(id.strip()) for id in scheme_ids.split(",") if id.strip()]
-    return await compare_schemes_detailed(ids, db)
+    return compare_schemes_detailed(ids, db)
 
 @router.get("/category/{category}")
 async def get_category_recommendations(
@@ -40,7 +40,7 @@ async def get_category_recommendations(
     risk_appetite: str = Query(..., description="Low, Medium, or High"),
     db: Session = Depends(get_db)
 ):
-    return await get_top_funds(
+    return get_top_funds(
         investment_amount=0,
         investment_mode=investment_mode,
         horizon_years=5,

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.db.models import MutualFundScheme, SchemeAnalytics
 from app.db.database import get_db
-from app.engine.recommendations import get_top_funds
+from app.engine.recommendations import get_top_funds, compare_schemes_detailed
 import json
 
 router = APIRouter()
@@ -56,7 +56,7 @@ async def get_top_funds_endpoint(
     category: Optional[str] = Query(None, description="Filter by category"),
     db: Session = Depends(get_db)
 ):
-    return await get_top_funds(
+    return get_top_funds(
         investment_amount=investment_amount,
         investment_mode=investment_mode,
         horizon_years=horizon_years,
@@ -71,4 +71,4 @@ async def compare_schemes(
     db: Session = Depends(get_db)
 ):
     ids = [int(id.strip()) for id in scheme_ids.split(",") if id.strip()]
-    return await compare_schemes_detailed(ids, db)
+    return compare_schemes_detailed(ids, db)

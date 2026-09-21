@@ -8,17 +8,20 @@ from typing import Generator, Iterator
 Base = declarative_base()
 
 # Database connection string
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://mfinder:mfinder_password@localhost:5432/mfinder")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mfinder.db")
 
-# Create engine with appropriate settings for TimescaleDB
-engine = create_engine(
-    DATABASE_URL,
-    echo=True,
-    pool_size=10,
-    max_overflow=20,
-    pool_timeout=30,
-    pool_recycle=1800
-)
+# Create engine
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        echo=True,
+        pool_size=10,
+        max_overflow=20,
+        pool_timeout=30,
+        pool_recycle=1800
+    )
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -34,23 +37,15 @@ def get_db() -> Generator:
     finally:
         db.close()
 
-async def init_db():
-    """Initialize database tables and TimescaleDB hypertable"""
+def init_db_sync():
+    """Initialize database tables"""
     from app.db.models import MutualFundScheme, SchemeNAVData, SchemeAnalytics
-
-    # Create all tables
     Base.metadata.create_all(bind=engine)
+    print("Database initialized")
 
-    # Convert scheme_nav_data to TimescaleDB hypertable if it exists
-    try:
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT to_regclass('scheme_nav_data')")).scalar()
-            if result:
-                conn.execute(text("SELECT create_hypertable('scheme_nav_data', 'time', chunk_time='7 days')"))
-                print("Created TimescaleDB hypertable for scheme_nav_data")
-    except Exception as e:
-        print(f"Note: Could not create hypertable (may already exist): {e}")
-
+async def init_db():
+    """Initialize database tables"""
+    init_db_sync()
     print("Database initialized")
 
 # Alembic configuration
