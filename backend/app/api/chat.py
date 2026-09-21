@@ -41,14 +41,17 @@ Rules:
 """
 
 def build_fund_context(db: Session) -> str:
-    schemes = db.query(MutualFundScheme).limit(16).all()
+    # Only holistic funds with real 5Y analytics, sorted by Sharpe for low-risk credibility
+    rows = db.query(MutualFundScheme, SchemeAnalytics).join(SchemeAnalytics, MutualFundScheme.scheme_id == SchemeAnalytics.scheme_id).filter(SchemeAnalytics.time_horizon_years==5, SchemeAnalytics.cagr > 0).order_by(SchemeAnalytics.sharpe_ratio.desc()).limit(12).all()
+    if not rows:
+        rows = db.query(MutualFundScheme, SchemeAnalytics).join(SchemeAnalytics, MutualFundScheme.scheme_id == SchemeAnalytics.scheme_id).filter(SchemeAnalytics.time_horizon_years==5).order_by(SchemeAnalytics.cagr.desc()).limit(12).all()
     lines = []
-    for s in schemes:
-        analytics = db.query(SchemeAnalytics).filter(SchemeAnalytics.scheme_id == s.scheme_id).first()
-        if analytics:
-            lines.append(f"- {s.scheme_name} ({s.category}, {s.amc_name}, expense {s.expense_ratio}%, CAGR {analytics.cagr:.1f}%, Sharpe {analytics.sharpe_ratio:.2f})")
-        else:
-            lines.append(f"- {s.scheme_name} ({s.category}, {s.amc_name}, expense {s.expense_ratio}%)")
+    for s, a in rows:
+        lines.append(f"- {s.scheme_name} ({s.category}, {s.amc_name}, expense {float(s.expense_ratio):.2f}%, 5Y CAGR {float(a.cagr):.1f}%, Sharpe {float(a.sharpe_ratio):.2f}, Sortino {float(a.sortino_ratio):.2f})")
+    if not lines:
+        # fallback to top 8 Direct Growth
+        for s in db.query(MutualFundScheme).filter(MutualFundScheme.plan_type=="Direct").limit(8).all():
+            lines.append(f"- {s.scheme_name} ({s.category}, {s.amc_name})")
     return "\n".join(lines)
 
 def heuristic_intent(message: str) -> dict:

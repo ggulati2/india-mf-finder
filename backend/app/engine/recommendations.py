@@ -171,13 +171,18 @@ def get_top_funds(
             
             fund_scores.append(fund_recommendation)
         
-        # Risk-aware sorting — low risk sorts by stability, high risk by return
+        # Risk-aware sorting — handle None/inf gracefully
+        def safe(v):
+            try:
+                f = float(v) if v is not None else 0.0
+                return f if __import__('math').isfinite(f) else 0.0
+            except: return 0.0
         if risk_appetite.lower() == 'low':
-            fund_scores.sort(key=lambda x: (x['analytics']['sharpe_ratio'] + x['analytics']['sortino_ratio'])/2, reverse=True)
+            fund_scores.sort(key=lambda x: (safe(x['analytics']['sharpe_ratio']) + safe(x['analytics']['sortino_ratio']))/2, reverse=True)
         elif risk_appetite.lower() == 'high':
-            fund_scores.sort(key=lambda x: x['analytics']['cagr'], reverse=True)
+            fund_scores.sort(key=lambda x: safe(x['analytics']['cagr']), reverse=True)
         else:
-            fund_scores.sort(key=lambda x: x['investment_mode_adjusted_score'], reverse=True)
+            fund_scores.sort(key=lambda x: safe(x['investment_mode_adjusted_score']), reverse=True)
         
         # Apply AMC cap rule: no single AMC > 33%
         filtered_funds = []
