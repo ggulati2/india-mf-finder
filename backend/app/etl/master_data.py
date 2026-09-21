@@ -126,14 +126,70 @@ def load_ter() -> dict:
     return out
 
 
+AMFI_SITE = "https://www.amfiindia.com"
+
+
+def load_ter_amfi() -> dict:
+    """normalized scheme name -> latest Direct-plan total TER (%), straight from AMFI's TER API.
+
+    One Excel download per fund house (the API needs a fund-house id; the id list comes from the
+    TER page itself). Rows are one per scheme per day; we keep each scheme's most recent row.
+    """
+    import io as _io
+    import openpyxl
+    page = httpx.get(f"{AMFI_SITE}/ter-of-mf-schemes", headers={"User-Agent": "Mozilla/5.0"}, timeout=60, follow_redirects=True).text
+    page = page.replace('\\"', '"')
+    ids = re.findall(r'"mfId":"(\d+)"', page)
+    if not ids:
+        raise RuntimeError("AMFI TER page: no fund house ids found")
+    today = date.today()
+    months = []
+    for back in range(0, 3):  # current month may not be published yet
+        y, m = today.year, today.month - back
+        while m < 1:
+            m += 12
+            y -= 1
+        months.append(f"{m:02d}-{y}")
+    out, newest = {}, {}
+    for mf in dict.fromkeys(ids):
+        for month in months:
+            r = httpx.get(f"{AMFI_SITE}/api/populate-te-rdata-revised", params={
+                "MF_ID": mf, "Month": month, "strCat": "-1", "strType": "-1", "excel": "true"},
+                headers={"User-Agent": "Mozilla/5.0"}, timeout=120)
+            if r.status_code != 200 or len(r.content) < 20000:
+                continue
+            ws = openpyxl.load_workbook(_io.BytesIO(r.content), read_only=True, data_only=True).active
+            rows = list(ws.iter_rows(values_only=True))
+            if len(rows) < 3:
+                continue
+            for row in rows[1:]:
+                try:
+                    name, dt, ter = row[1], row[4], float(row[14])
+                except (TypeError, ValueError, IndexError):
+                    continue
+                if not name or dt is None or not (0 < ter < 4):
+                    continue
+                k = norm_name(str(name))
+                if k not in newest or dt > newest[k]:
+                    newest[k], out[k] = dt, ter
+            break  # newest month with data for this fund house is enough
+    return out
+
+
 def refresh_master(db, add_new: bool = True) -> dict:
     text = fetch_navall()
     rows = {r["amfi_code"]: r for r in parse_navall(text)}
     newest = max(r["date"] for r in rows.values())
     alive_cutoff = newest - timedelta(days=10)
-    ter_map = load_ter()
     stats = {"amfi_rows": len(rows), "as_of": newest.isoformat(), "updated": 0, "added": 0,
              "deactivated": 0, "ter_matched": 0, "ter_missing": 0}
+    try:
+        ter_map = load_ter_amfi()          # official, current names
+        stats["ter_source"] = f"AMFI TER API ({len(ter_map)} schemes)"
+    except Exception as e:                 # fall back to the community CSV, and say so
+        logger.warning("AMFI TER API failed (%s); using CSV fallback", e)
+        ter_map = load_ter()
+        stats["ter_source"] = f"CSV fallback ({len(ter_map)} schemes): {e}"
 
     used_isins = {i for (i,) in db.query(MutualFundScheme.isin)}
     existing = {s.amfi_code: s for s in db.query(MutualFundScheme)}

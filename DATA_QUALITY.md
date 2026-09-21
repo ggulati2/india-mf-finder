@@ -7,7 +7,7 @@ official source or clearly labelled as an estimate. Unknown is shown as "n/a", n
 |---|---|---|
 | Scheme list, AMC, ISIN, SEBI category | AMFI `NAVAll.txt` (portal.amfiindia.com) | Direct + Growth + open-ended only; matured/merged schemes are inactive |
 | NAV history | AMFI NAV data via mfapi.in | Reconciled against AMFI's own history report (`scripts/verify_data.py`): 0 mismatches over 524 sampled NAVs at 1/3/5 years back |
-| Expense ratio (TER) | AMFI TER disclosure, republished daily by captn3m0/india-mutual-fund-ter-tracker | Matched by name; about 55% of active schemes match (the source lags fund renames). No match = "n/a" (no fuzzy guessing) |
+| Expense ratio (TER) | AMFI TER API (`/api/populate-te-rdata-revised`, one Excel per fund house), latest daily row | 1,441 of 1,481 active schemes (97%). Matched by normalised name; no match = "n/a", no fuzzy guessing. Falls back to captn3m0's CSV, which lags AMFI (e.g. Axis Small Cap: CSV 0.54% vs AMFI 0.71% on 18 Sep 2026) |
 | Benchmark (beta, capture) | Nifty 50 price index, Yahoo Finance | Excludes dividends; cached daily in `backend/data/` |
 | Risk level | Official SEBI Riskometer where imported, else a conservative estimate | See below. Every fund shows which one it is |
 | Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India only (74 schemes). Others show "not imported yet". Earlier versions showed synthetic data |
@@ -39,5 +39,9 @@ Not done: HDFC (blocks scripted access), SBI and ICICI (files load via JavaScrip
 ## Known limits
 - Returns are past, point-to-point, from funds that survive today (survivorship bias).
 - Nifty benchmark is a price index, not TRI.
-- TER coverage is partial. Official Riskometer and holdings exist for Nippon India only; every other fund shows an estimated risk and no holdings.
+- TER changes month to month (base rate, brokerage, statutory levies), so values are as of the latest AMFI row, not fixed. Official Riskometer and holdings exist for Nippon India only; every other fund shows an estimated risk and no holdings.
 - Rerun `scripts/backfill.py master` then `recompute` after data source changes; `verify_data.py` should exit 0.
+
+## Where fund houses publish portfolios (probe of AMFI's directory, 53 fund houses)
+AMFI does not host portfolio files; its Portfolio Disclosure page only links out to each fund house.
+Probe result: 18 expose plain file links, 23 load them via JavaScript, 12 blocked or unreachable to a script.
