@@ -1,9 +1,8 @@
 from sqlalchemy import Column, Integer, String, Date, Boolean, Numeric, ForeignKey, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import date
 
-Base = declarative_base()
+from app.db.database import Base
 
 class MutualFundScheme(Base):
     __tablename__ = "mutual_fund_schemes"
@@ -18,6 +17,7 @@ class MutualFundScheme(Base):
     option_type = Column(String(20), nullable=False)
     launch_date = Column(Date, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    expense_ratio = Column(Numeric, default=0.0, nullable=False)
 
     nav_data = relationship("SchemeNAVData", back_populates="scheme")
     analytics = relationship("SchemeAnalytics", back_populates="scheme")

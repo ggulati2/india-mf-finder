@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from typing import List, Optional
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.db.models import MutualFundScheme, SchemeAnalytics
 from app.db.database import get_db
@@ -9,36 +8,41 @@ import json
 
 router = APIRouter()
 
-class FundFilter(BaseModel):
-    category: Optional[str] = None
-    plan_type: Optional[str] = "Direct"
-    option_type: Optional[str] = None
-    min_rating: Optional[float] = None
-    max_expense_ratio: Optional[float] = None
-
-@router.get("/", response_model=List[dict])
+@router.get("/")
 async def get_schemes(
-    filter: FundFilter = Depends(),
+    plan_type: Optional[str] = Query("Direct", description="Plan type"),
+    category: Optional[str] = Query(None, description="Filter by category"),
+    option_type: Optional[str] = Query(None, description="Filter by option type"),
     db: Session = Depends(get_db)
 ):
-    query = db.query(MutualFundScheme)
+    query = db.query(MutualFundScheme).filter(MutualFundScheme.is_active == True)
 
-    if filter.category:
-        query = query.filter(MutualFundScheme.category == filter.category)
+    if category:
+        query = query.filter(MutualFundScheme.category == category)
 
-    if filter.plan_type:
-        query = query.filter(MutualFundScheme.plan_type == filter.plan_type)
+    if plan_type:
+        query = query.filter(MutualFundScheme.plan_type == plan_type)
 
-    if filter.option_type:
-        query = query.filter(MutualFundScheme.option_type == filter.option_type)
+    if option_type:
+        query = query.filter(MutualFundScheme.option_type == option_type)
 
-    if filter.min_rating:
-        query = query.filter(MutualFundScheme.rating >= filter.min_rating)
-
-    if filter.max_expense_ratio:
-        query = query.filter(MutualFundScheme.expense_ratio <= filter.max_expense_ratio)
-
-    return query.all()
+    results = query.all()
+    return [
+        {
+            "scheme_id": s.scheme_id,
+            "amfi_code": s.amfi_code,
+            "isin": s.isin,
+            "scheme_name": s.scheme_name,
+            "amc_name": s.amc_name,
+            "category": s.category,
+            "plan_type": s.plan_type,
+            "option_type": s.option_type,
+            "launch_date": str(s.launch_date),
+            "expense_ratio": float(s.expense_ratio) if s.expense_ratio else 0.0,
+            "is_active": s.is_active
+        }
+        for s in results
+    ]
 
 @router.get("/{scheme_id}")
 async def get_scheme(scheme_id: int, db: Session = Depends(get_db)):

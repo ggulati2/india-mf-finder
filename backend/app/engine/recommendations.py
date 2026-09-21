@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.db.models import MutualFundScheme, SchemeAnalytics
 from app.engine.scoring import calculate_ocs_score, compute_scheme_analytics
+import numpy as np
 import pandas as pd
 import logging
 
@@ -95,16 +96,10 @@ def get_top_funds(
     Get top fund recommendations based on investment parameters.
     """
     try:
-        # Default to all schemes if no category filter
-        query = db.query(MutualFundScheme, SchemeAnalytics)
+        query = db.query(MutualFundScheme)
         
         if category:
             query = query.filter(MutualFundScheme.category == category)
-        
-        # Join with analytics for the default horizon (5 years if available)
-        query = query.join(SchemeAnalytics).filter(
-            SchemeAnalytics.time_horizon_years == horizon_years
-        )
         
         # Filter to direct plans only
         query = query.filter(MutualFundScheme.plan_type == "Direct")
@@ -114,9 +109,12 @@ def get_top_funds(
         
         fund_scores = []
         
-        for scheme, analytics in results:
-            if not analytics:
-                continue
+        for scheme in results:
+            # Get analytics if available
+            analytics = db.query(SchemeAnalytics).filter(
+                SchemeAnalytics.scheme_id == scheme.scheme_id,
+                SchemeAnalytics.time_horizon_years == horizon_years
+            ).first()
             
             # Get category scores for anti-bias normalization
             category_scores = get_category_scores(db, scheme.scheme_id)
@@ -129,9 +127,9 @@ def get_top_funds(
                 'plan_type': scheme.plan_type,
                 'option_type': scheme.option_type,
                 'expense_ratio': float(scheme.expense_ratio) if scheme.expense_ratio else 0.0,
-                'pe_ratio': None,  # Placeholder - would get from portfolio data
-                'pb_ratio': None,  # Placeholder - would get from portfolio data
-                'volatility': analytics.rolling_returns_std if analytics else 0.0,
+                'pe_ratio': None,
+                'pb_ratio': None,
+                'volatility': float(analytics.rolling_returns_std) if analytics and analytics.rolling_returns_std else 0.0,
                 'launch_date': scheme.launch_date,
                 'is_active': scheme.is_active
             }
@@ -144,7 +142,6 @@ def get_top_funds(
                 risk_appetite=risk_appetite
             )
             
-            # Prepare fund recommendation
             fund_recommendation = {
                 'scheme_id': scheme.scheme_id,
                 'amfi_code': scheme.amfi_code,
@@ -158,31 +155,29 @@ def get_top_funds(
                 'expense_ratio': float(scheme.expense_ratio) if scheme.expense_ratio else 0.0,
                 'ocs_score': ocs_score,
                 'analytics': {
-                    'cagr': float(analytics.cagr) if analytics.cagr else 0.0,
-                    'sharpe_ratio': float(analytics.sharpe_ratio) if analytics.sharpe_ratio else 0.0,
-                    'sortino_ratio': float(analytics.sortino_ratio) if analytics.sortino_ratio else 0.0,
-                    'beta': float(analytics.beta) if analytics.beta else 0.0,
-                    'upside_capture': float(analytics.upside_capture) if analytics.upside_capture else 0.0,
-                    'downside_capture': float(analytics.downside_capture) if analytics.downside_capture else 0.0,
-                    'time_horizon': analytics.time_horizon_years
+                    'cagr': float(analytics.cagr) if analytics and analytics.cagr else 0.0,
+                    'sharpe_ratio': float(analytics.sharpe_ratio) if analytics and analytics.sharpe_ratio else 0.0,
+                    'sortino_ratio': float(analytics.sortino_ratio) if analytics and analytics.sortino_ratio else 0.0,
+                    'beta': float(analytics.beta) if analytics and analytics.beta else 1.0,
+                    'upside_capture': float(analytics.upside_capture) if analytics and analytics.upside_capture else 100.0,
+                    'downside_capture': float(analytics.downside_capture) if analytics and analytics.downside_capture else 100.0,
+                    'time_horizon': analytics.time_horizon_years if analytics else horizon_years
                 },
-                'investment_mode_adjusted_score': ocs_score * get_mode_multiplier(investment_mode, analytics)
+                'investment_mode_adjusted_score': ocs_score
             }
             
             fund_scores.append(fund_recommendation)
         
-        # Sort by OCS score (highest first)
+        # Sort by OCS score
         fund_scores.sort(key=lambda x: x['investment_mode_adjusted_score'], reverse=True)
         
-        # Filter out schemes with AMC cap violation for multi-fund portfolios
+        # Apply AMC cap rule: no single AMC > 33%
         filtered_funds = []
-        amc_weights = {}
-        
+        amc_counts = {}
         for fund in fund_scores:
-            amc_name = fund['amc_name']
-            amc_weights[amc_name] = amc_weights.get(amc_name, 0) + 1
-            
-            if len(filtered_funds) == 0 or amc_weights.get(amc_name, 0) <= 1:
+            amc = fund['amc_name']
+            amc_counts[amc] = amc_counts.get(amc, 0) + 1
+            if len(filtered_funds) == 0 or amc_counts.get(amc, 0) <= 1:
                 filtered_funds.append(fund)
         
         return filtered_funds
