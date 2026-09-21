@@ -16,7 +16,7 @@ def data_confidence(scheme, analytics, horizon_years: int, has_holdings: bool = 
     hist = float(analytics.history_years) if analytics is not None and analytics.history_years is not None else 0.0
     checks = {
         "category_verified": bool(scheme.sebi_category),
-        "nav_validated": not any(f in (scheme.data_flags or "") for f in ("nav_jump", "nav_gap", "sparse_history", "nonpositive_nav")),
+        "nav_validated": not ({"nav_jump", "nav_gap", "sparse_history", "nonpositive_nav"} & set((scheme.data_flags or "").split(","))),
         "history_covers_horizon": hist >= horizon_years * 0.95,
         "data_fresh": bool(scheme.latest_nav_date and scheme.latest_nav_date >= date.today() - timedelta(days=10)),
         "expense_ratio_known": scheme.ter_pct is not None,

@@ -47,18 +47,21 @@ def main(dates):
             print(f"{d}: AMFI returned no data (holiday?) - skipped")
             continue
         ours = {(r.scheme_id): float(r.nav) for r in db.query(SchemeNAVData).filter(SchemeNAVData.time == d)}
-        cmp = mism = 0
+        cmp = mism = zero = 0
         examples = []
         for sid, nav in ours.items():
             a = ref.get(schemes[sid].amfi_code) if sid in schemes else None
             if a is None:
+                continue
+            if a <= 0:            # AMFI itself sometimes publishes 0 / placeholder NAVs
+                zero += 1
                 continue
             cmp += 1
             if abs(nav - a) / a > 1e-4:
                 mism += 1
                 if len(examples) < 5:
                     examples.append((schemes[sid].scheme_name[:45], nav, a))
-        print(f"{d}: compared {cmp}, mismatched {mism}")
+        print(f"{d}: compared {cmp}, mismatched {mism}, AMFI zero-NAV rows skipped {zero}")
         for e in examples:
             print("   ", e)
         total += cmp

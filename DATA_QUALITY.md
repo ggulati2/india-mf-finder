@@ -6,7 +6,7 @@ official source or clearly labelled as an estimate. Unknown is shown as "n/a", n
 | Data | Source | Notes |
 |---|---|---|
 | Scheme list, AMC, ISIN, SEBI category | AMFI `NAVAll.txt` (portal.amfiindia.com) | Direct + Growth + open-ended only; matured/merged schemes are inactive |
-| NAV history | AMFI NAV data via mfapi.in | Reconciled against AMFI's own history report (`scripts/verify_data.py`): 0 mismatches over 524 sampled NAVs at 1/3/5 years back |
+| NAV history | AMFI NAV history report (`portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx`), one request per fund house, last 11 years | Rebuilt entirely from AMFI on 2026-09-22 (2.25M rows, 57 fund houses). Old mfapi.in data agreed on 942,663 overlapping dates except 96 (0.01%). Independent check vs AMFI single-day reports: 3,142 compared, 0 mismatches (`scripts/verify_data.py`). mfapi.in is no longer used |
 | Expense ratio (TER) | AMFI TER API (`/api/populate-te-rdata-revised`, one Excel per fund house), latest daily row | 1,441 of 1,481 active schemes (97%). Matched by normalised name; no match = "n/a", no fuzzy guessing. Falls back to captn3m0's CSV, which lags AMFI (e.g. Axis Small Cap: CSV 0.54% vs AMFI 0.71% on 18 Sep 2026) |
 | Benchmark (beta, capture) | Nifty 50 price index, Yahoo Finance | Excludes dividends; cached daily in `backend/data/` |
 | Risk level | Official SEBI Riskometer where imported, else a conservative estimate | See below. Every fund shows which one it is |
@@ -14,7 +14,7 @@ official source or clearly labelled as an estimate. Unknown is shown as "n/a", n
 
 ## Validation applied to every NAV series (`app/engine/quality.py`)
 - Zero/negative NAVs and isolated one-day spikes that reverse next day are dropped (`repaired_points`).
-- Any remaining implausible persistent jump (>20% a day for equity, >5% debt, >12% hybrid), a gap over 20 days, or coverage under 80% blocks the scheme (`data_flags`); it gets no analytics and is not recommended.
+- An implausible persistent jump (>20% a day for equity, >5% debt, >12% hybrid) invalidates only the horizons whose window contains it (`nav_jump_old`); it blocks the whole scheme (`nav_jump`) only if it is within the last 12 months. A gap over 20 days or coverage under 80% also blocks the scheme. Blocked schemes get no analytics and are not recommended. Example: AMFI's own history has a 100x unit slip on Edelweiss Liquid in 2017.
 - A horizon (1/3/5/10Y) is only computed if we hold that much history. Earlier code silently reused shorter history under a longer label.
 - Inactive, matured, IDCW/bonus/regular options are excluded (their NAV drops on payouts, so returns are not comparable).
 
@@ -45,3 +45,6 @@ Not done: HDFC (blocks scripted access), SBI and ICICI (files load via JavaScrip
 ## Where fund houses publish portfolios (probe of AMFI's directory, 53 fund houses)
 AMFI does not host portfolio files; its Portfolio Disclosure page only links out to each fund house.
 Probe result: 18 expose plain file links, 23 load them via JavaScript, 12 blocked or unreachable to a script.
+
+## Rebuilding
+`scripts/overnight.sh` (from `backend/`): master data + TER, NAV history for every fund house, validated analytics, then `verify_data.py`. About 22 minutes. Run 2026-09-22: 1,481 active schemes, 1,407 clean, 31 with an old break (shorter horizons only), 40 too new, 3 blocked for a recent break.

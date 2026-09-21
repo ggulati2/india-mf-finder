@@ -14,12 +14,13 @@ from app.db.models import MutualFundScheme, SchemeNAVData, SchemeAnalytics
 from app.etl.historic_nav import fetch_historic_nav_for_scheme
 from app.etl.master_data import refresh_master, _add_flag
 from app.engine.scoring import compute_scheme_analytics
-from app.engine.quality import clean_nav, window_for_horizon, window_flags
+import pandas as pd_
+from app.engine.quality import clean_nav, window_for_horizon, window_flags, find_jumps
 
 ORDER = {'Large Cap': 0, 'Mid Cap': 1, 'Small Cap': 2, 'Flexi Cap': 3, 'ELSS': 4,
          'Hybrid': 5, 'Index': 6, 'Sectoral': 7, 'Debt': 8}
-NAV_FLAGS = ("repaired_points", "nonpositive_nav", "nav_jump", "nav_gap", "sparse_history", "insufficient_history")
-BLOCKING = set(NAV_FLAGS) - {"repaired_points"}
+NAV_FLAGS = ("repaired_points", "nav_jump_old", "nonpositive_nav", "nav_jump", "nav_gap", "sparse_history", "insufficient_history")
+BLOCKING = set(NAV_FLAGS) - {"repaired_points", "nav_jump_old"}
 
 
 def compute_for(db, s):
@@ -34,8 +35,18 @@ def compute_for(db, s):
     df = pd.DataFrame([{'date': r.time, 'nav': float(r.nav)} for r in rows])
     df['date'] = pd.to_datetime(df['date'])
     df, flags = clean_nav(df, s.category)
+    if df.empty:
+        s.data_flags = ",".join(kept + sorted(set(flags + ["insufficient_history"])))
+        db.commit()
+        return sorted(set(flags + ["insufficient_history"]))
     s.history_start = df['date'].iloc[0].date()
     s.launch_date = s.history_start          # earliest NAV we hold; true launch may be earlier
+    # A break in the series only invalidates horizons whose window contains it; it blocks the whole
+    # scheme only if it is recent (last 12 months), since that taints every horizon.
+    jumps = find_jumps(df, s.category)
+    flags = [f for f in flags if f != "nav_jump"]
+    if jumps:
+        flags.append("nav_jump" if max(jumps) >= df['date'].max() - pd_.Timedelta(days=365) else "nav_jump_old")
     recent = window_for_horizon(df, 5) if len(df) else None
     flags += window_flags(recent if recent is not None else df)
     flags = sorted(set(flags))
@@ -45,7 +56,7 @@ def compute_for(db, s):
         return flags
     for h in (1, 3, 5, 10):
         w = window_for_horizon(df, h)
-        if w is None:
+        if w is None or any(j >= w['date'].iloc[0] for j in jumps):
             continue                          # never fake a horizon with shorter history
         a = compute_scheme_analytics(nav_df=w, scheme=s, time_horizon_years=h)
         db.add(SchemeAnalytics(

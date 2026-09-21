@@ -57,6 +57,13 @@ def clean_nav(df: pd.DataFrame, bucket: str) -> Tuple[pd.DataFrame, List[str]]:
     return df, flags
 
 
+def find_jumps(df: pd.DataFrame, bucket: str) -> List[pd.Timestamp]:
+    """Dates of implausible one-day NAV moves that remain after spike repair."""
+    limit = MAX_DAILY_MOVE.get(bucket, DEFAULT_MAX_DAILY_MOVE)
+    r = df["nav"].pct_change().abs()
+    return list(df.loc[r > limit, "date"])
+
+
 def window_for_horizon(df: pd.DataFrame, years: int) -> Optional[pd.DataFrame]:
     """The last `years` years of NAVs, or None if we do not truly hold that much history."""
     end = df["date"].max()
