@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Fund } from "@/types/fund";
+import { Fund } from "../types/fund";
 
 interface RollingReturnsChartProps {
   funds: Fund[];

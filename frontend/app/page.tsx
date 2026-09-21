@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FundCard } from "@/components/fund-card";
-import { ComparisonTable } from "@/components/comparison-table";
-import { RollingReturnsChart } from "@/components/rolling-returns-chart";
-import { OverlapMatrix } from "@/components/overlap-matrix";
-import { FundFilter } from "@/components/fund-filter";
+import { FundCard } from "./components/fund-card";
+import { ComparisonTable } from "./components/comparison-table";
+import { RollingReturnsChart } from "./components/rolling-returns-chart";
+import { OverlapMatrix } from "./components/overlap-matrix";
+import { FundFilter } from "./components/fund-filter";
 
 interface Fund {
   scheme_id: number;

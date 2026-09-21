@@ -1,4 +1,4 @@
-import { Fund } from "@/types/fund";
+import { Fund } from "../types/fund";
 
 interface ComparisonTableProps {
   funds: Fund[];
