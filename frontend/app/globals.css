@@ -4,8 +4,8 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 255, 255, 255;
-  --background-end-rgb: 240, 240, 240;
+  --background-start-rgb: 240, 242, 245;
+  --background-end-rgb: 255, 255, 255;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,6 +24,40 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800;
+  }
+
+  .glass-card-hover {
+    @apply glass-card transition-all duration-300 hover:shadow-xl hover:scale-[1.02] cursor-pointer;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600;
+  }
+
+  .stat-badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .stat-badge-green {
+    @apply stat-badge bg-green-50 text-green-700;
+  }
+
+  .stat-badge-blue {
+    @apply stat-badge bg-blue-50 text-blue-700;
+  }
+
+  .stat-badge-amber {
+    @apply stat-badge bg-amber-50 text-amber-700;
+  }
+
+  .stat-badge-purple {
+    @apply stat-badge bg-purple-50 text-purple-700;
+  }
 }
 
 @layer utilities {

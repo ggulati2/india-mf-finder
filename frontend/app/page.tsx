@@ -60,13 +60,37 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <h1 className="text-4xl font-bold text-primary mb-8">
-        India Mutual Fund Finder
-      </h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900/30">
+      {/* Hero Header */}
+      <header className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white rounded-full blur-3xl -translate-y-1/2"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white rounded-full blur-3xl translate-y-1/2"></div>
+        </div>
+        <div className="relative max-w-7xl mx-auto px-6 py-12 md:py-16">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0/24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
+            <span className="text-sm font-medium text-blue-100 tracking-wide uppercase">India Mutual Fund Finder</span>
+          </div>
+          <h1 className="text-5xl md:text-6xl font-bold mb-3 gradient-text">
+            AI-Powered Fund
+            <br />
+            <span className="text-white">Recommendations</span>
+          </h1>
+          <p className="text-lg text-blue-100 max-w-2xl">
+            Discover top-performing mutual funds with objective composite scoring, risk-adjusted analytics, and smart portfolio analysis.
+          </p>
+        </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Investment Parameters */}
+        <section>
           <FundFilter
             investmentMode={investmentMode}
             setInvestmentMode={setInvestmentMode}
@@ -75,45 +99,99 @@ export default function Dashboard() {
             category={category}
             setCategory={setCategory}
           />
+        </section>
 
-          {loading ? (
-            <div className="animate-pulse space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 bg-gray-200 rounded" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              {funds.map((fund) => (
-                <FundCard
-                  key={fund.scheme_id}
-                  fund={fund}
-                  selected={selectedFunds.includes(fund.scheme_id)}
-                  onToggle={() => toggleFund(fund.scheme_id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-card rounded-lg p-6 border">
-            <h2 className="text-xl font-semibold mb-4">Portfolio Analytics</h2>
-            <RollingReturnsChart funds={funds} selectedFunds={selectedFunds} />
+        {/* Stats Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="glass-card p-4">
+            <p className="text-sm text-gray-500 mb-1">Funds Analyzed</p>
+            <p className="text-2xl font-bold text-blue-600">{funds.length}</p>
           </div>
-
-          <div className="bg-card rounded-lg p-6 border">
-            <h2 className="text-xl font-semibold mb-4">Fund Comparison</h2>
-            <ComparisonTable funds={funds} selectedFunds={selectedFunds} />
+          <div className="glass-card p-4">
+            <p className="text-sm text-gray-500 mb-1">Mode</p>
+            <p className="text-2xl font-bold text-indigo-600 capitalize">{investmentMode}</p>
+          </div>
+          <div className="glass-card p-4">
+            <p className="text-sm text-gray-500 mb-1">Risk Level</p>
+            <p className="text-2xl font-bold text-amber-600 capitalize">{riskAppetite}</p>
+          </div>
+          <div className="glass-card p-4">
+            <p className="text-sm text-gray-500 mb-1">Selected</p>
+            <p className="text-2xl font-bold text-purple-600">{selectedFunds.length}</p>
           </div>
         </div>
-      </div>
 
-      {selectedFunds.length >= 2 && (
-        <div className="mt-8">
-          <OverlapMatrix fundIds={selectedFunds} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Fund Cards */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Recommended Funds</h2>
+              <span className="text-sm text-gray-500">Click to select for comparison</span>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="glass-card p-6 animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+                  </div>
+                ))}
+              </div>
+            ) : funds.length === 0 ? (
+              <div className="glass-card p-12 text-center">
+                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0/24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Funds Found</h3>
+                <p className="text-gray-500">Try adjusting your filters or investment parameters.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {funds.map((fund) => (
+                  <FundCard
+                    key={fund.scheme_id}
+                    fund={fund}
+                    selected={selectedFunds.includes(fund.scheme_id)}
+                    onToggle={() => toggleFund(fund.scheme_id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="space-y-6">
+            <div className="glass-card p-6">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Portfolio Analytics</h2>
+              <RollingReturnsChart funds={funds} selectedFunds={selectedFunds} />
+            </div>
+
+            <div className="glass-card p-6">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Fund Comparison</h2>
+              <ComparisonTable funds={funds} selectedFunds={selectedFunds} />
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* Overlap Matrix */}
+        {selectedFunds.length >= 2 && (
+          <section>
+            <OverlapMatrix fundIds={selectedFunds} />
+          </section>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 dark:border-gray-800 mt-12">
+        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between text-sm text-gray-500">
+          <p>© 2024 India Mutual Fund Finder</p>
+          <p>AI-Powered Analytics Engine</p>
+        </div>
+      </footer>
     </div>
   );
 }
