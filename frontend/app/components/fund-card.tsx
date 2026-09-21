@@ -1,4 +1,5 @@
 import { Fund } from "../types/fund";
+import { NavSparkline } from "./nav-sparkline";
 import { riskColor, fmtTer, RISK_HELP } from "./risk";
 
 interface FundCardProps {
@@ -84,6 +85,7 @@ export function FundCard({ fund, selected, onToggle }: FundCardProps) {
           <p className={`text-sm font-bold ${steady.color}`}>{steady.label}</p>
         </div>
       </div>
+      <NavSparkline schemeId={fund.scheme_id} years={horizon} />
       <details className="mt-3 text-xs text-gray-400">
         <summary className="cursor-pointer hover:text-gray-600">Show advanced (Sharpe {fund.analytics.sharpe_ratio.toFixed(2)}, Sortino {fund.analytics.sortino_ratio.toFixed(2)})</summary>
         <p className="mt-1">Sharpe = return per risk. Sortino = return per downside risk. Higher = better, but shown here for reference. Past performance does not guarantee future returns.{fund.data_as_of ? ` NAV data as of ${fund.data_as_of}.` : ""}</p>

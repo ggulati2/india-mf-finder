@@ -4,8 +4,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const scheme_id = searchParams.get("scheme_id");
   const years = searchParams.get("years") || "5";
+  const maxPoints = searchParams.get("max_points") || "250";
   if (!scheme_id) return NextResponse.json({ error: "scheme_id required" }, { status: 400 });
-  const r = await fetch(`${API_BASE_URL}/api/v1/analytics/${scheme_id}/history?years=${years}`);
+  const r = await fetch(`${API_BASE_URL}/api/v1/analytics/${scheme_id}/history?years=${years}&max_points=${maxPoints}`);
   const data = await r.json();
   return NextResponse.json(data, { status: r.status });
 }

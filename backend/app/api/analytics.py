@@ -10,25 +10,36 @@ router = APIRouter()
 async def get_scheme_history(
     scheme_id: int,
     years: Optional[int] = Query(5, description="Years of history"),
+    max_points: int = Query(250, ge=20, le=2000, description="Downsample to at most this many points"),
     db: Session = Depends(get_db),
 ):
     scheme = db.query(MutualFundScheme).filter(MutualFundScheme.scheme_id == scheme_id).first()
     if not scheme:
         raise HTTPException(status_code=404, detail="Scheme not found")
-    q = db.query(SchemeNAVData).filter(SchemeNAVData.scheme_id == scheme_id).order_by(SchemeNAVData.time.asc())
-    rows = q.all()
-    # filter to last N years if requested
-    if years and rows:
-        from datetime import date, timedelta
-        cutoff = date.today() - timedelta(days=int(years*365.25))
-        rows = [r for r in rows if r.time >= cutoff]
+    rows = db.query(SchemeNAVData).filter(SchemeNAVData.scheme_id == scheme_id).order_by(SchemeNAVData.time.asc()).all()
+    points = []
+    if rows:
+        import pandas as pd
+        from app.engine.quality import clean_nav
+        df = pd.DataFrame([{"date": pd.Timestamp(r.time), "nav": float(r.nav)} for r in rows])
+        df, _ = clean_nav(df, scheme.category)   # same validated series the analytics use
+        if years:
+            df = df[df["date"] >= df["date"].max() - pd.Timedelta(days=int(years * 365.25))]
+        if len(df) > max_points:
+            step = len(df) / max_points
+            idx = sorted({int(i * step) for i in range(max_points)} | {len(df) - 1})
+            df = df.iloc[idx]
+        base = float(df["nav"].iloc[0]) if len(df) else 1.0
+        points = [{"date": str(d.date()), "nav": float(v), "value": round(float(v) / base * 100, 2)}
+                  for d, v in zip(df["date"], df["nav"])]
     return {
         "scheme_id": scheme_id,
         "scheme_name": scheme.scheme_name,
         "amc_name": scheme.amc_name,
         "category": scheme.category,
-        "points": [{"date": str(r.time), "nav": float(r.nav)} for r in rows],
-        "count": len(rows),
+        "points": points,
+        "count": len(points),
+        "as_of": str(scheme.latest_nav_date) if scheme.latest_nav_date else None,
     }
 
 @router.get("/{scheme_id}")
