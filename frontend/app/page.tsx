@@ -27,7 +27,10 @@ interface Fund {
 
 export default function Dashboard() {
   const [funds, setFunds] = useState<Fund[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [investmentAmount, setInvestmentAmount] = useState<number>(100000);
+  const [horizonYears, setHorizonYears] = useState<number>(5);
   const [investmentMode, setInvestmentMode] = useState<"lump-sum" | "sip">("lump-sum");
   const [riskAppetite, setRiskAppetite] = useState<"low" | "medium" | "high">("medium");
   const [category, setCategory] = useState("");
@@ -39,14 +42,14 @@ export default function Dashboard() {
   const [minStars, setMinStars] = useState(1);
   const [steadinessFilter, setSteadinessFilter] = useState<string>("all");
 
-  useEffect(() => {
-    fetchFunds();
-  }, [investmentMode, riskAppetite, category]);
-
   const fetchFunds = async () => {
+    setLoading(true);
+    setHasSearched(true);
     try {
       const params = new URLSearchParams({
+        investment_amount: String(investmentAmount),
         investment_mode: investmentMode,
+        horizon_years: String(horizonYears),
         risk_appetite: riskAppetite,
         category: category,
       });
@@ -131,19 +134,54 @@ export default function Dashboard() {
           <ChatTab />
         ) : (
           <>
-        {/* Investment Parameters */}
-        <section>
-          <FundFilter
-            investmentMode={investmentMode}
-            setInvestmentMode={setInvestmentMode}
-            riskAppetite={riskAppetite}
-            setRiskAppetite={setRiskAppetite}
-            category={category}
-            setCategory={setCategory}
-          />
+        {/* Investment Parameters — lean landing, only applicable funds after Find */}
+        <section className="glass-card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0/24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+            </div>
+            <h3 className="font-bold text-gray-800 dark:text-gray-100">Tell us about your investment</h3>
+            <span className="text-xs text-gray-400 ml-2">We’ll show only funds that match</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Amount (₹)</label>
+              <input type="number" value={investmentAmount} onChange={(e)=>setInvestmentAmount(Number(e.target.value))} placeholder="100000" className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Mode</label>
+              <select value={investmentMode} onChange={(e)=>setInvestmentMode(e.target.value as any)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+                <option value="lump-sum">Lump Sum</option>
+                <option value="sip">SIP</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Horizon</label>
+              <select value={horizonYears} onChange={(e)=>setHorizonYears(Number(e.target.value))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+                <option value={1}>1 Year</option><option value={3}>3 Years</option><option value={5}>5 Years</option><option value={10}>10 Years</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Risk</label>
+              <select value={riskAppetite} onChange={(e)=>setRiskAppetite(e.target.value as any)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+                <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Category</label>
+              <select value={category} onChange={(e)=>setCategory(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+                <option value="">All</option><option value="Large Cap">Large Cap</option><option value="Mid Cap">Mid Cap</option><option value="Small Cap">Small Cap</option><option value="Flexi Cap">Flexi Cap</option><option value="ELSS">ELSS</option><option value="Hybrid">Hybrid</option><option value="Debt">Debt</option><option value="Index">Index</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button onClick={fetchFunds} className="w-full rounded-xl bg-indigo-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-indigo-700 transition">Find Funds →</button>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-3">No funds are loaded until you click Find Funds — faster landing, only applicable funds shown. Uses Direct Growth, OCS with SIP/Lump adjustments.</p>
         </section>
 
-        {/* Sort & Filter Sliders */}
+        {/* Sort & Filter Sliders — only after search to keep landing lean */}
+        {hasSearched && (
         <section className="glass-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
@@ -190,8 +228,22 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
+        )}
 
-        {/* Stats Bar */}
+        {!hasSearched && (
+          <div className="glass-card p-12 text-center">
+            <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0/24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Ready to find your best funds?</h3>
+            <p className="text-gray-500">Choose amount, horizon, risk and category above, then click <span className="font-semibold text-indigo-600">Find Funds</span>.</p>
+            <p className="text-xs text-gray-400 mt-2">We’ll load only funds that match — faster, focused, holistic.</p>
+          </div>
+        )}
+
+        {/* Stats Bar — only after search to keep landing lean */}
+        {hasSearched && (
+        <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="glass-card p-4">
             <p className="text-sm text-gray-500 mb-1">Funds Shown</p>
@@ -298,6 +350,8 @@ export default function Dashboard() {
           <section>
             <OverlapMatrix fundIds={selectedFunds} />
           </section>
+        )}
+          </>
         )}
           </>
         )}
