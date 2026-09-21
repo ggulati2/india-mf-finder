@@ -110,11 +110,14 @@ def get_top_funds(
         fund_scores = []
         
         for scheme in results:
-            # Get analytics if available
+            # Get analytics if available — skip funds without real history for holistic decision
             analytics = db.query(SchemeAnalytics).filter(
                 SchemeAnalytics.scheme_id == scheme.scheme_id,
                 SchemeAnalytics.time_horizon_years == horizon_years
             ).first()
+            # Require real historic analytics (non-zero CAGR/Sharpe) to ensure holistic data
+            if not analytics or (float(analytics.cagr or 0) == 0 and float(analytics.sharpe_ratio or 0) == 0):
+                continue
             
             # Get category scores for anti-bias normalization
             category_scores = get_category_scores(db, scheme.scheme_id)

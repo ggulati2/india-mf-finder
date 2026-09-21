@@ -118,17 +118,21 @@ def compute_scheme_analytics(
         jensens_alpha = cagr - (beta * (risk_free_rate + excess_returns.std()))
         upside_capture, downside_capture = calculate_capture_ratios(returns, rolling_returns)
         volatility = returns.std() * np.sqrt(252)
+        def _sanitize(v):
+            if not np.isfinite(v):
+                return 0.0
+            return float(np.clip(v, -1e6, 1e6))
         analytics = {
-            'cagr': float(cagr * 100),
-            'rolling_returns_mean': float(rolling_returns.mean() * 100),
-            'rolling_returns_std': float(rolling_returns.std() * 100),
-            'sharpe_ratio': float(sharpe_ratio),
-            'sortino_ratio': float(sortino_ratio),
-            'jensens_alpha': float(jensens_alpha * 100),
-            'beta': float(beta),
-            'upside_capture': float(upside_capture),
-            'downside_capture': float(downside_capture),
-            'volatility': float(volatility * 100)
+            'cagr': _sanitize(cagr * 100),
+            'rolling_returns_mean': _sanitize(rolling_returns.mean() * 100),
+            'rolling_returns_std': _sanitize(rolling_returns.std() * 100),
+            'sharpe_ratio': _sanitize(sharpe_ratio),
+            'sortino_ratio': _sanitize(sortino_ratio),
+            'jensens_alpha': _sanitize(jensens_alpha * 100),
+            'beta': _sanitize(float(np.clip(beta, -5, 5))),
+            'upside_capture': _sanitize(upside_capture),
+            'downside_capture': _sanitize(downside_capture),
+            'volatility': _sanitize(volatility * 100)
         }
         return analytics
     except Exception as e:
