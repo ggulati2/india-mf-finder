@@ -12,7 +12,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mfinder.db")
 
 # Create engine — Neon/Supabase serverless needs small pool + SSL
 if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
+    engine = create_engine(DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
 else:
     # pool_size 3 is safe for Neon free tier (max 5-10 connections) + Render free (1 instance)
     # pool_pre_ping handles Neon cold starts; connect_args adds sslmode if not in URL

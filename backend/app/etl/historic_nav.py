@@ -25,24 +25,21 @@ async def fetch_historic_nav_for_scheme(amfi_code: int, scheme_id: int, db: Sess
             if not data:
                 logger.warning(f"No historic data for {amfi_code}")
                 return 0
-            inserted = 0
+            existing = {r[0] for r in db.query(SchemeNAVData.time).filter(SchemeNAVData.scheme_id == scheme_id)}
+            new_rows = []
             for entry in data:
                 try:
                     nav_date = datetime.strptime(entry["date"], "%d-%m-%Y").date()
                     nav_val = float(entry["nav"])
                 except Exception:
                     continue
-                exists = db.query(SchemeNAVData).filter(
-                    SchemeNAVData.scheme_id == scheme_id,
-                    SchemeNAVData.time == nav_date
-                ).first()
-                if not exists:
-                    db.add(SchemeNAVData(time=nav_date, scheme_id=scheme_id, nav=nav_val))
-                    inserted += 1
-                # batch commit every 500
-                if inserted % 500 == 0:
-                    db.commit()
+                if nav_date not in existing:
+                    existing.add(nav_date)
+                    new_rows.append({"time": nav_date, "scheme_id": scheme_id, "nav": nav_val})
+            if new_rows:
+                db.bulk_insert_mappings(SchemeNAVData, new_rows)
             db.commit()
+            inserted = len(new_rows)
             logger.info(f"Scheme {scheme_id} (code {amfi_code}): {inserted} NAV rows inserted, total {len(data)} available")
             return inserted
     except Exception as e:
