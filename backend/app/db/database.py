@@ -46,14 +46,15 @@ def get_db() -> Generator:
 
 def init_db_sync():
     """Initialize database tables"""
-    from app.db.models import MutualFundScheme, SchemeNAVData, SchemeAnalytics
+    from app.db.models import MutualFundScheme, SchemeNAVData, SchemeAnalytics, SchemeHolding
     Base.metadata.create_all(bind=engine)
     ensure_columns()
     print("Database initialized")
 
 _NEW_COLUMNS = {
     "mutual_fund_schemes": {"sebi_category": "VARCHAR(120)", "ter_pct": "NUMERIC", "history_start": "DATE",
-                            "latest_nav_date": "DATE", "data_flags": "VARCHAR(255)"},
+                            "latest_nav_date": "DATE", "data_flags": "VARCHAR(255)",
+                            "riskometer": "VARCHAR(30)", "riskometer_as_of": "DATE", "riskometer_source": "VARCHAR(120)"},
     "scheme_analytics": {"volatility": "NUMERIC", "max_drawdown": "NUMERIC", "history_years": "NUMERIC"},
 }
 

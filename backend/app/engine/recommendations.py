@@ -4,7 +4,7 @@ from app.engine.scoring import calculate_ocs_score, compute_scheme_analytics
 import numpy as np
 import pandas as pd
 import logging
-from app.engine.risk_level import risk_level
+from app.engine.risk_level import risk_info
 from app.engine.confidence import data_confidence
 
 logger = logging.getLogger(__name__)
@@ -114,6 +114,8 @@ def get_top_funds(
         query = query.filter(MutualFundScheme.is_active == True)  # noqa: E712
         results = query.all()
 
+        from app.db.models import SchemeHolding
+        with_holdings = {r[0] for r in db.query(SchemeHolding.scheme_id).distinct()}
         fund_scores = []
         
         for scheme in results:
@@ -126,15 +128,16 @@ def get_top_funds(
             if not analytics or (float(analytics.cagr or 0) == 0 and float(analytics.sharpe_ratio or 0) == 0):
                 continue
             
-            risk = risk_level(scheme.category, scheme.sebi_category,
-                              float(analytics.volatility) if analytics.volatility is not None else None,
-                              float(analytics.max_drawdown) if analytics.max_drawdown is not None else None)
-            # Appetite gate: low -> up to Moderate, medium -> up to High, high -> anything
-            max_risk = {'low': 3, 'medium': 5}.get(risk_appetite.lower(), 6)
+            risk = risk_info(scheme,
+                             float(analytics.volatility) if analytics.volatility is not None else None,
+                             float(analytics.max_drawdown) if analytics.max_drawdown is not None else None)
+            # Appetite gate on the SAME level the user sees (official Riskometer when known):
+            # low -> up to Moderate, medium -> up to Moderately High, high -> anything.
+            max_risk = {'low': 3, 'medium': 4}.get(risk_appetite.lower(), 6)
             if risk['score'] > max_risk:
                 continue
 
-            confidence = data_confidence(scheme, analytics, horizon_years)
+            confidence = data_confidence(scheme, analytics, horizon_years, scheme.scheme_id in with_holdings)
             if confidence['level'] == 'Low' or (complete_only and confidence['level'] != 'Complete'):
                 continue
 

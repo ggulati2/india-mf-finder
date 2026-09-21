@@ -48,13 +48,19 @@ async def get_holistic(scheme_id: int, years: int = Query(5), db: Session = Depe
         bench_cagr = None
 
     vol5 = next((analytics[h] for h in (5, 3, 1) if h in analytics), None)
-    from app.engine.risk_level import risk_level
-    level = risk_level(scheme.category, scheme.sebi_category,
-                       float(vol5.volatility) if vol5 and vol5.volatility is not None else None,
-                       float(vol5.max_drawdown) if vol5 and vol5.max_drawdown is not None else None)
+    from app.engine.risk_level import risk_info
+    level = risk_info(scheme, float(vol5.volatility) if vol5 and vol5.volatility is not None else None,
+                      float(vol5.max_drawdown) if vol5 and vol5.max_drawdown is not None else None)
 
+    from app.db.models import SchemeHolding
+    hold_rows = db.query(SchemeHolding).filter(SchemeHolding.scheme_id == scheme_id).order_by(SchemeHolding.weight_pct.desc()).all()
+    holdings = [{"name": h.name, "isin": h.isin, "sector": h.sector, "weight": round(float(h.weight_pct), 2)} for h in hold_rows[:25]]
+    sector_w = {}
+    for h in hold_rows:
+        sector_w[h.sector or "Other"] = sector_w.get(h.sector or "Other", 0) + float(h.weight_pct)
+    sector_alloc = [{"sector": k, "weight": round(v, 1)} for k, v in sorted(sector_w.items(), key=lambda kv: -kv[1])][:12]
     from app.engine.confidence import data_confidence
-    conf = data_confidence(scheme, vol5, years)
+    conf = data_confidence(scheme, vol5, years, bool(hold_rows))
 
     def n(x):
         return float(x) if x is not None else None
@@ -75,9 +81,12 @@ async def get_holistic(scheme_id: int, years: int = Query(5), db: Session = Depe
         "risk": {**level, "max_drawdown": round(mdd, 2), "rolling_3y": rolling[:100],
                  "sip_xirr_5y": sip, "benchmark_nifty_cagr": bench_cagr},
         "confidence": conf,
-        "holdings": [],
-        "sector_allocation": [],
-        "holdings_note": "Portfolio holdings are not shown: there is no verified public data feed for them yet.",
+        "holdings": holdings,
+        "sector_allocation": sector_alloc,
+        "holdings_as_of": str(hold_rows[0].as_of) if hold_rows else None,
+        "holdings_source": hold_rows[0].source if hold_rows else None,
+        "top10_weight": round(sum(h["weight"] for h in holdings[:10]), 1) if holdings else None,
+        "holdings_note": None if hold_rows else "Portfolio holdings are not shown: this fund house's monthly disclosure is not imported yet.",
         "nav_history": [{"date": str(d.date()), "nav": float(v)} for d, v in zip(nav_df["date"], nav_df["nav"])][-252*years:] if not nav_df.empty else [],
         "data_quality": {
             "nav_source": "AMFI NAV data via mfapi.in; validated (spikes repaired, gaps/jumps flagged)",

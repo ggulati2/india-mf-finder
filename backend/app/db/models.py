@@ -24,6 +24,9 @@ class MutualFundScheme(Base):
     history_start = Column(Date)             # first NAV date we hold (launch date proxy)
     latest_nav_date = Column(Date)
     data_flags = Column(String(255))         # comma-separated validation flags; non-empty = excluded
+    riskometer = Column(String(30))          # official SEBI Riskometer level published by the AMC
+    riskometer_as_of = Column(Date)
+    riskometer_source = Column(String(120))
 
     nav_data = relationship("SchemeNAVData", back_populates="scheme")
     analytics = relationship("SchemeAnalytics", back_populates="scheme")
@@ -68,3 +71,17 @@ class SchemeAnalytics(Base):
 
     def __repr__(self):
         return f"<SchemeAnalytics(scheme_id={self.scheme_id}, computed_date={self.computed_date}, horizon={self.time_horizon_years})>"
+
+
+class SchemeHolding(Base):
+    """One line of an AMC's monthly portfolio disclosure (official, as published)."""
+    __tablename__ = "scheme_holdings"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    scheme_id = Column(Integer, ForeignKey("mutual_fund_schemes.scheme_id"), index=True, nullable=False)
+    as_of = Column(Date, nullable=False)
+    isin = Column(String(12))
+    name = Column(String(255), nullable=False)
+    sector = Column(String(120))          # industry for equity, rating/instrument type for debt
+    weight_pct = Column(Numeric, nullable=False)   # % of scheme NAV
+    source = Column(String(120))

@@ -1,5 +1,5 @@
 import { Fund } from "../types/fund";
-import { RISK_HELP, fmtTer } from "./risk";
+import { riskHelp, fmtTer } from "./risk";
 
 interface ComparisonTableProps {
   funds: Fund[];
@@ -28,7 +28,7 @@ export function ComparisonTable({ funds, selectedFunds }: ComparisonTableProps) 
   const rows = [
     { label: "Past annual return", help: "Compounded yearly return over the chosen past period; history, not a forecast", get: (f:Fund)=> `${f.analytics.cagr.toFixed(1)}%`, cls: "text-green-600" },
     { label: "Overall Score", help: "Our 0-100 combined score (higher = better balance of return, risk, consistency, cost)", get: (f:Fund)=> f.ocs_score.toFixed(0), cls: "text-indigo-600" },
-    { label: "Risk (estimated)", help: RISK_HELP, get: (f:Fund)=> `${f.risk?.level ?? "Unknown"}${f.analytics.volatility != null ? ` (vol ${f.analytics.volatility.toFixed(0)}%)` : ""}`, cls: "text-amber-600" },
+    { label: "Risk level", help: "Official SEBI Riskometer where marked, otherwise our conservative estimate", get: (f:Fund)=> `${f.risk?.level ?? "Unknown"}${f.risk?.official ? " (SEBI)" : " (est.)"}${f.analytics.volatility != null ? ` (vol ${f.analytics.volatility.toFixed(0)}%)` : ""}`, cls: "text-amber-600" },
     { label: "Worst fall", help: "Largest peak-to-trough drop over the period", get: (f:Fund)=> f.analytics.max_drawdown != null ? `${f.analytics.max_drawdown.toFixed(1)}%` : "n/a", cls: "text-red-600" },
     { label: "Steadiness", help: "How it held up when markets fell (from Sortino)", get: (f:Fund)=> steadinessLabel(f.analytics.sortino_ratio), cls: "text-blue-600" },
     { label: "Annual cost", help: "Expense ratio per year", get: (f:Fund)=> fmtTer(f.expense_ratio), cls: "text-gray-600" },

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { riskColor, RISK_HELP, fmtTer } from "./risk";
+import { riskColor, riskHelp, fmtTer } from "./risk";
 
 const COLORS = ["#4f46e5","#06b6d4","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6"];
 
@@ -24,15 +24,15 @@ export function HolisticPanel({ schemeId }: { schemeId: number }) {
         <div className="glass-card p-3 text-center" title="Worst fall from a peak — lower is better"><p className="text-xs text-gray-500">Worst fall</p><p className="text-lg font-bold text-red-600">{data.risk.max_drawdown}%</p><p className="text-xs text-gray-400">max drop</p></div>
         <div className="glass-card p-3 text-center" title="Latest 3-year yearly return — shows consistency over time"><p className="text-xs text-gray-500">Last 3Y return</p><p className="text-lg font-bold text-indigo-600">{data.risk.rolling_3y?.slice(-1)[0]?.rolling_cagr ?? "-"}%</p><p className="text-xs text-gray-400">rolling 3Y</p></div>
         <div className="glass-card p-3 text-center" title="Hypothetical back-test of a ₹10k monthly SIP over the past 5 years. Not a forecast."><p className="text-xs text-gray-500">SIP back-test</p><p className="text-lg font-bold text-green-600">{data.risk.sip_xirr_5y}%<span className="text-xs font-normal">/yr</span></p><p className="text-xs text-gray-400">10k/mo 5Y</p></div>
-        <div className="glass-card p-3 text-center" title={RISK_HELP}><p className="text-xs text-gray-500">Risk (estimated)</p><p className={`text-lg font-bold ${riskColor(data.risk?.level)}`}>{data.risk?.level ?? "Unknown"}</p><p className="text-xs text-gray-400">from past volatility</p></div>
+        <div className="glass-card p-3 text-center" title={riskHelp(data.risk)}><p className="text-xs text-gray-500">Risk {data.risk?.official ? "(SEBI official)" : "(estimated)"}</p><p className={`text-lg font-bold ${riskColor(data.risk?.level)}`}>{data.risk?.level ?? "Unknown"}</p><p className="text-xs text-gray-400">{data.risk?.official ? `as of ${data.risk?.as_of ?? ""}` : "from past volatility"}</p></div>
       </div>
       {hasHoldings ? (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="glass-card p-4">
-          <h4 className="font-semibold mb-2" title="Where your money is invested — top stocks in this fund">Top holdings <span className="text-gray-400 font-normal text-xs">(what it owns)</span></h4>
+          <h4 className="font-semibold mb-2" title="Where your money is invested — top stocks in this fund">Top holdings <span className="text-gray-400 font-normal text-xs">(top 10 = {data.top10_weight}% · {data.holdings_source})</span></h4>
           <div className="space-y-1 text-sm">
             {data.holdings.slice(0,10).map((h:any)=>(
-              <div key={h.ticker} className="flex justify-between"><span className="font-mono">{h.ticker}</span><span className="text-gray-500">{h.sector}</span><span className="font-semibold">{h.weight}%</span></div>
+              <div key={h.isin ?? h.name} className="flex justify-between"><span className="truncate mr-2" title={h.isin}>{h.name}</span><span className="text-gray-500 truncate mr-2">{h.sector}</span><span className="font-semibold">{h.weight}%</span></div>
             ))}
           </div>
         </div>

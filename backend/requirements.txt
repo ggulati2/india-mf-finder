@@ -30,3 +30,4 @@ uvicorn[standard]>=0.24.0
 
 # Database driver
 psycopg[binary]>=3.0.10
+openpyxl>=3.1

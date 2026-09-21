@@ -12,7 +12,7 @@ from datetime import date, timedelta
 CORE = ("category_verified", "nav_validated", "history_covers_horizon", "data_fresh")
 
 
-def data_confidence(scheme, analytics, horizon_years: int) -> dict:
+def data_confidence(scheme, analytics, horizon_years: int, has_holdings: bool = False) -> dict:
     hist = float(analytics.history_years) if analytics is not None and analytics.history_years is not None else 0.0
     checks = {
         "category_verified": bool(scheme.sebi_category),
@@ -27,5 +27,6 @@ def data_confidence(scheme, analytics, horizon_years: int) -> dict:
         "level": level,
         "checks": checks,
         "missing": [k for k, v in checks.items() if not v],
-        "not_available": ["official SEBI Riskometer", "portfolio holdings"],
+        "not_available": [x for x, have in (("official SEBI Riskometer", bool(getattr(scheme, "riskometer", None))),
+                                            ("portfolio holdings", has_holdings)) if not have],
     }

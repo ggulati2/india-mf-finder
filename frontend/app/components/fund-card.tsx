@@ -1,6 +1,6 @@
 import { Fund } from "../types/fund";
 import { NavSparkline } from "./nav-sparkline";
-import { riskColor, fmtTer, RISK_HELP } from "./risk";
+import { riskColor, fmtTer, riskHelp } from "./risk";
 
 interface FundCardProps {
   fund: Fund;
@@ -75,9 +75,10 @@ export function FundCard({ fund, selected, onToggle }: FundCardProps) {
           <p className="text-xs text-gray-400 mb-1">Past {horizon}Y return / yr</p>
           <p className="text-sm font-bold text-green-600">{fund.analytics.cagr.toFixed(1)}%</p>
         </div>
-        <div className="text-center" title={RISK_HELP}>
+        <div className="text-center" title={riskHelp(fund.risk)}>
           <p className="text-xs text-gray-400 mb-1">Risk</p>
           <p className={`text-sm font-bold ${riskColor(fund.risk?.level)}`}>{fund.risk?.level ?? "Unknown"}</p>
+          <p className={`text-[10px] ${fund.risk?.official ? "text-green-600" : "text-gray-400"}`}>{fund.risk?.official ? "SEBI official" : "estimated"}</p>
           {fund.analytics.max_drawdown != null && <p className="text-[10px] text-gray-400">worst fall {fund.analytics.max_drawdown.toFixed(0)}%</p>}
         </div>
         <div className="text-center" title="How steady past gains were when markets fell. Steady = held up better in downs. Based on Sortino.">

@@ -10,7 +10,7 @@ export interface Fund {
   launch_date: string;
   expense_ratio: number | null;
   sebi_category?: string;
-  risk: { level: string; score: number; basis: string };
+  risk: { level: string; score: number; basis: string; official?: boolean; source?: string; as_of?: string | null; measured?: string };
   confidence?: { level: "Complete" | "Partial" | "Low"; checks: Record<string, boolean>; missing: string[]; not_available: string[] };
   data_as_of?: string | null;
   history_start?: string | null;
