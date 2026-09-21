@@ -5,6 +5,9 @@ interface ComparisonTableProps {
   selectedFunds: number[];
 }
 
+function riskLabel(sharpe: number) { return sharpe >= 1 ? "Low" : sharpe >= 0.5 ? "Medium" : "High"; }
+function steadinessLabel(sortino: number) { return sortino >= 1 ? "Very steady" : sortino >= 0.6 ? "Steady" : "Bumpy"; }
+
 export function ComparisonTable({ funds, selectedFunds }: ComparisonTableProps) {
   if (selectedFunds.length < 2 || !funds || funds.length === 0) {
     return (
@@ -16,23 +19,19 @@ export function ComparisonTable({ funds, selectedFunds }: ComparisonTableProps) 
             </svg>
           </div>
           <p className="text-sm text-gray-500">Select at least 2 funds to compare</p>
+          <p className="text-xs text-gray-400 mt-1">We’ll show simple Annual return, Risk, Steadiness</p>
         </div>
       </div>
     );
   }
-
-  const selectedFundsData = funds.filter((f) =>
-    selectedFunds.includes(f.scheme_id)
-  );
-
-  const metrics = [
-    { label: "CAGR", key: "cagr", format: (v: number) => `${v.toFixed(2)}%`, color: "text-green-600" },
-    { label: "Sharpe Ratio", key: "sharpe_ratio", format: (v: number) => v.toFixed(2), color: "text-blue-600" },
-    { label: "Sortino Ratio", key: "sortino_ratio", format: (v: number) => v.toFixed(2), color: "text-amber-600" },
-    { label: "Beta", key: "beta", format: (v: number) => v.toFixed(2), color: "text-purple-600" },
-    { label: "OCS Score", key: "ocs_score", format: (v: number) => v.toFixed(1), color: "text-indigo-600" },
+  const selectedFundsData = funds.filter((f) => selectedFunds.includes(f.scheme_id));
+  const rows = [
+    { label: "Annual return", help: "Average yearly gain over chosen horizon", get: (f:Fund)=> `${f.analytics.cagr.toFixed(1)}%`, cls: "text-green-600" },
+    { label: "Overall Score", help: "Our 0-100 combined score (higher = better balance of return, risk, consistency, cost)", get: (f:Fund)=> f.ocs_score.toFixed(0), cls: "text-indigo-600" },
+    { label: "Risk", help: "How bumpy per unit of return (from Sharpe). Low = smoother", get: (f:Fund)=> riskLabel(f.analytics.sharpe_ratio), cls: "text-amber-600" },
+    { label: "Steadiness", help: "How it held up when markets fell (from Sortino)", get: (f:Fund)=> steadinessLabel(f.analytics.sortino_ratio), cls: "text-blue-600" },
+    { label: "Annual cost", help: "Expense ratio per year", get: (f:Fund)=> `${f.expense_ratio.toFixed(2)}%`, cls: "text-gray-600" },
   ];
-
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -49,23 +48,17 @@ export function ComparisonTable({ funds, selectedFunds }: ComparisonTableProps) 
           </tr>
         </thead>
         <tbody>
-          {metrics.map((metric) => (
-            <tr key={metric.key} className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-              <td className="p-3 text-gray-600 dark:text-gray-400 font-medium text-xs">{metric.label}</td>
-              {selectedFundsData.map((fund) => {
-                const value = metric.key === "ocs_score"
-                  ? fund.ocs_score
-                  : (fund.analytics[metric.key as keyof Fund['analytics']] || 0);
-                return (
-                  <td key={fund.scheme_id} className={`p-3 text-right font-bold ${metric.color}`}>
-                    {metric.format(value as number)}
-                  </td>
-                );
-              })}
+          {rows.map((r) => (
+            <tr key={r.label} className="border-b border-gray-50 dark:border-gray-800">
+              <td className="p-3 text-gray-600 dark:text-gray-400 font-medium text-xs" title={r.help}>{r.label}<span className="ml-1 text-gray-300">ⓘ</span></td>
+              {selectedFundsData.map((fund) => (
+                <td key={fund.scheme_id} className={`p-3 text-right font-bold ${r.cls}`}>{r.get(fund)}</td>
+              ))}
             </tr>
           ))}
         </tbody>
       </table>
+      <p className="text-xs text-gray-400 mt-2 text-center">Tap ⓘ for plain-English help • Advanced Sharpe/Sortino hidden for simplicity</p>
     </div>
   );
 }

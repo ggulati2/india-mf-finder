@@ -6,14 +6,31 @@ interface FundCardProps {
   onToggle: () => void;
 }
 
+function riskLabel(sharpe: number) {
+  if (sharpe >= 1.0) return { label: "Low risk", color: "text-green-600", bg: "bg-green-50 border-green-200" };
+  if (sharpe >= 0.5) return { label: "Medium risk", color: "text-amber-600", bg: "bg-amber-50 border-amber-200" };
+  return { label: "High risk", color: "text-red-600", bg: "bg-red-50 border-red-200" };
+}
+function steadinessLabel(sortino: number) {
+  if (sortino >= 1.0) return { label: "Very steady", color: "text-green-600" };
+  if (sortino >= 0.6) return { label: "Steady", color: "text-blue-600" };
+  return { label: "Bumpy", color: "text-amber-600" };
+}
+function stars(ocs: number) {
+  const n = Math.max(1, Math.round(ocs / 20));
+  return "★".repeat(n) + "☆".repeat(5 - n);
+}
+
 export function FundCard({ fund, selected, onToggle }: FundCardProps) {
+  const risk = riskLabel(fund.analytics.sharpe_ratio);
+  const steady = steadinessLabel(fund.analytics.sortino_ratio);
+  const expCost = fund.expense_ratio <= 0.6 ? "Low cost" : fund.expense_ratio <= 0.9 ? "Medium cost" : "High cost";
   const getScoreColor = (score: number) => {
     if (score >= 75) return "text-green-600";
     if (score >= 50) return "text-blue-600";
     if (score >= 25) return "text-amber-600";
     return "text-red-600";
   };
-
   const getScoreBadge = (score: number) => {
     if (score >= 75) return "bg-green-50 text-green-700 border-green-200";
     if (score >= 50) return "bg-blue-50 text-blue-700 border-blue-200";
@@ -36,45 +53,38 @@ export function FundCard({ fund, selected, onToggle }: FundCardProps) {
             {fund.scheme_name}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {fund.amc_name} · {fund.category}
+            {fund.amc_name} · {fund.category} · {expCost} ({fund.expense_ratio.toFixed(2)}%)
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2 ml-3">
-          <span
-            className={`text-3xl font-bold ${getScoreColor(fund.ocs_score)}`}
-          >
-            {fund.ocs_score.toFixed(1)}
+        <div className="flex flex-col items-end gap-1 ml-3">
+          <span className={`text-3xl font-bold ${getScoreColor(fund.ocs_score)}`}>
+            {fund.ocs_score.toFixed(0)}
           </span>
-          <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${getScoreBadge(
-              fund.ocs_score
-            )}`}
-          >
-            OCS Score
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${getScoreBadge(fund.ocs_score)}`}>
+            Overall Score
           </span>
+          <span className="text-xs text-amber-500" title="Higher is better — combines returns, risk, consistency, cost and trend (0-100)">{stars(fund.ocs_score)}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">CAGR</p>
-          <p className="text-sm font-bold text-green-600">
-            {fund.analytics.cagr.toFixed(2)}%
-          </p>
+        <div className="text-center" title="Average yearly return over selected horizon — higher is better, but not guaranteed">
+          <p className="text-xs text-gray-400 mb-1">Annual return</p>
+          <p className="text-sm font-bold text-green-600">{fund.analytics.cagr.toFixed(1)}%</p>
         </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Sharpe</p>
-          <p className="text-sm font-bold text-blue-600">
-            {fund.analytics.sharpe_ratio.toFixed(2)}
-          </p>
+        <div className="text-center" title="How bumpy the ride is. Low risk = smoother returns for each unit of risk. Based on Sharpe (higher Sharpe = lower risk).">
+          <p className="text-xs text-gray-400 mb-1">Risk</p>
+          <p className={`text-sm font-bold ${risk.color}`}>{risk.label}</p>
         </div>
-        <div className="text-center">
-          <p className="text-xs text-gray-400 mb-1">Sortino</p>
-          <p className="text-sm font-bold text-amber-600">
-            {fund.analytics.sortino_ratio.toFixed(2)}
-          </p>
+        <div className="text-center" title="How steady past gains were when markets fell. Steady = held up better in downs. Based on Sortino.">
+          <p className="text-xs text-gray-400 mb-1">Steadiness</p>
+          <p className={`text-sm font-bold ${steady.color}`}>{steady.label}</p>
         </div>
       </div>
+      <details className="mt-3 text-xs text-gray-400">
+        <summary className="cursor-pointer hover:text-gray-600">Show advanced (Sharpe {fund.analytics.sharpe_ratio.toFixed(2)}, Sortino {fund.analytics.sortino_ratio.toFixed(2)})</summary>
+        <p className="mt-1">Sharpe = return per risk. Sortino = return per downside risk. Higher = better, but we simplify them above as Risk & Steadiness.</p>
+      </details>
 
       {selected && (
         <div className="mt-3 pt-3 border-t border-indigo-100 dark:border-indigo-900/30">
