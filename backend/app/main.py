@@ -59,7 +59,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000","https://app.mydomain.com","https://*.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -87,6 +87,14 @@ app.include_router(
 @app.get("/api/v1/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
+
+@app.get("/health")
+async def health_alias():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn

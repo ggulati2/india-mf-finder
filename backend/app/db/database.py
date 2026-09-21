@@ -10,17 +10,24 @@ Base = declarative_base()
 # Database connection string
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mfinder.db")
 
-# Create engine
+# Create engine — Neon/Supabase serverless needs small pool + SSL
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, echo=True, connect_args={"check_same_thread": False})
 else:
+    # pool_size 3 is safe for Neon free tier (max 5-10 connections) + Render free (1 instance)
+    # pool_pre_ping handles Neon cold starts; connect_args adds sslmode if not in URL
+    connect_args = {}
+    if "sslmode" not in DATABASE_URL:
+        connect_args["sslmode"] = "require"
     engine = create_engine(
         DATABASE_URL,
-        echo=True,
-        pool_size=10,
-        max_overflow=20,
+        echo=False,
+        pool_size=3,
+        max_overflow=2,
         pool_timeout=30,
-        pool_recycle=1800
+        pool_recycle=300,
+        pool_pre_ping=True,
+        connect_args=connect_args,
     )
 
 # Session factory

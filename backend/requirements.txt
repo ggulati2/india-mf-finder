@@ -24,5 +24,9 @@ ruff>=0.1.9
 mypy>=1.7.0
 black>=23.11.0
 
+# Production server
+gunicorn>=21.2.0
+uvicorn[standard]>=0.24.0
+
 # Database driver
 psycopg[binary]>=3.0.10
