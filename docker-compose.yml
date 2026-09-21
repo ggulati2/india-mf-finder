@@ -38,7 +38,7 @@ services:
 
   worker:
     build: ./backend
-    command: celery -A app.worker worker --loglevel=info
+    command: celery -A app.worker:celery_app worker --loglevel=info
     environment:
       DATABASE_URL: postgresql://mfinder:mfinder_password@postgres:5432/mfinder
       REDIS_URL: redis://redis:6379/0
