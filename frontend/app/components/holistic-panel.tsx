@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const COLORS = ["#4f46e5","#06b6d4","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6"];
 
-function riskText(sharpe:number){ if(sharpe>=1) return "Low risk"; if(sharpe>=0.5) return "Medium risk"; return "High risk"; }
+function riskText(sharpe:number){ if(sharpe>=0.7) return "Low risk"; if(sharpe>=0.4) return "Medium risk"; return "High risk"; }
 
 export function HolisticPanel({ schemeId }: { schemeId: number }) {
   const [data, setData] = useState<any>(null);

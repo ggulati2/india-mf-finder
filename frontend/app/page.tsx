@@ -70,7 +70,7 @@ export default function Dashboard() {
   };
 
   // Filtering and sorting
-  const steadinessVal = (sortino: number) => (sortino >= 1 ? 2 : sortino >= 0.6 ? 1 : 0);
+  const steadinessVal = (sortino: number) => (sortino >= 0.9 ? 2 : sortino >= 0.6 ? 1 : 0);
   const filteredFunds = funds.filter((f) => {
     const stars = Math.max(1, Math.round(f.ocs_score / 20));
     const steady = steadinessVal(f.analytics.sortino_ratio);

@@ -5,8 +5,8 @@ interface ComparisonTableProps {
   selectedFunds: number[];
 }
 
-function riskLabel(sharpe: number) { return sharpe >= 1 ? "Low" : sharpe >= 0.5 ? "Medium" : "High"; }
-function steadinessLabel(sortino: number) { return sortino >= 1 ? "Very steady" : sortino >= 0.6 ? "Steady" : "Bumpy"; }
+function riskLabel(sharpe: number) { return sharpe >= 0.7 ? "Low" : sharpe >= 0.4 ? "Medium" : "High"; }
+function steadinessLabel(sortino: number) { return sortino >= 0.9 ? "Very steady" : sortino >= 0.6 ? "Steady" : "Bumpy"; }
 
 export function ComparisonTable({ funds, selectedFunds }: ComparisonTableProps) {
   if (selectedFunds.length < 2 || !funds || funds.length === 0) {

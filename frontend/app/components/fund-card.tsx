@@ -7,12 +7,12 @@ interface FundCardProps {
 }
 
 function riskLabel(sharpe: number) {
-  if (sharpe >= 1.0) return { label: "Low risk", color: "text-green-600", bg: "bg-green-50 border-green-200" };
-  if (sharpe >= 0.5) return { label: "Medium risk", color: "text-amber-600", bg: "bg-amber-50 border-amber-200" };
+  if (sharpe >= 0.7) return { label: "Low risk", color: "text-green-600", bg: "bg-green-50 border-green-200" };
+  if (sharpe >= 0.4) return { label: "Medium risk", color: "text-amber-600", bg: "bg-amber-50 border-amber-200" };
   return { label: "High risk", color: "text-red-600", bg: "bg-red-50 border-red-200" };
 }
 function steadinessLabel(sortino: number) {
-  if (sortino >= 1.0) return { label: "Very steady", color: "text-green-600" };
+  if (sortino >= 0.9) return { label: "Very steady", color: "text-green-600" };
   if (sortino >= 0.6) return { label: "Steady", color: "text-blue-600" };
   return { label: "Bumpy", color: "text-amber-600" };
 }
