@@ -4,9 +4,7 @@ from app.engine.scoring import calculate_ocs_score, compute_scheme_analytics
 import numpy as np
 import pandas as pd
 import logging
-from datetime import date, timedelta
-from sqlalchemy import func
-from app.db.models import SchemeNAVData
+from app.engine.risk_level import risk_level
 
 logger = logging.getLogger(__name__)
 
@@ -110,14 +108,10 @@ def get_top_funds(
         # Filter to direct plans only
         query = query.filter(MutualFundScheme.plan_type == "Direct")
         
-        # Execute query
-        # Drop defunct/matured schemes: their frozen history would otherwise score well
-        cutoff = date.today() - timedelta(days=60)
-        active_ids = {r[0] for r in db.query(SchemeNAVData.scheme_id)
-                      .group_by(SchemeNAVData.scheme_id)
-                      .having(func.max(SchemeNAVData.time) >= cutoff).all()}
-        results = [s for s in query.all() if s.scheme_id in active_ids]
-        
+        # Only verified, live Direct-Growth schemes; analytics rows exist only if NAV validation passed
+        query = query.filter(MutualFundScheme.is_active == True)  # noqa: E712
+        results = query.all()
+
         fund_scores = []
         
         for scheme in results:
@@ -130,6 +124,14 @@ def get_top_funds(
             if not analytics or (float(analytics.cagr or 0) == 0 and float(analytics.sharpe_ratio or 0) == 0):
                 continue
             
+            risk = risk_level(scheme.category, scheme.sebi_category,
+                              float(analytics.volatility) if analytics.volatility is not None else None,
+                              float(analytics.max_drawdown) if analytics.max_drawdown is not None else None)
+            # Appetite gate: low -> up to Moderate, medium -> up to High, high -> anything
+            max_risk = {'low': 3, 'medium': 5}.get(risk_appetite.lower(), 6)
+            if risk['score'] > max_risk:
+                continue
+
             # Get category scores for anti-bias normalization
             category_scores = get_category_scores(db, scheme.scheme_id)
             
@@ -166,7 +168,11 @@ def get_top_funds(
                 'plan_type': scheme.plan_type,
                 'option_type': scheme.option_type,
                 'launch_date': scheme.launch_date,
-                'expense_ratio': float(scheme.expense_ratio) if scheme.expense_ratio else 0.0,
+                'expense_ratio': float(scheme.ter_pct) if scheme.ter_pct is not None else None,
+                'sebi_category': scheme.sebi_category,
+                'risk': risk,
+                'data_as_of': scheme.latest_nav_date.isoformat() if scheme.latest_nav_date else None,
+                'history_start': scheme.history_start.isoformat() if scheme.history_start else None,
                 'ocs_score': ocs_score,
                 'analytics': {
                     'cagr': float(analytics.cagr) if analytics and analytics.cagr else 0.0,
@@ -175,6 +181,9 @@ def get_top_funds(
                     'beta': float(analytics.beta) if analytics and analytics.beta else 1.0,
                     'upside_capture': float(analytics.upside_capture) if analytics and analytics.upside_capture else 100.0,
                     'downside_capture': float(analytics.downside_capture) if analytics and analytics.downside_capture else 100.0,
+                    'volatility': float(analytics.volatility) if analytics.volatility is not None else None,
+                    'max_drawdown': float(analytics.max_drawdown) if analytics.max_drawdown is not None else None,
+                    'history_years': float(analytics.history_years) if analytics.history_years is not None else None,
                     'time_horizon': analytics.time_horizon_years if analytics else horizon_years
                 },
                 'investment_mode_adjusted_score': ocs_score

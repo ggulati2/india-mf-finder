@@ -36,18 +36,19 @@ Rules:
 - Enforce AMC cap 33% and category diversification.
 - Always cite category, expense ratio, and risk.
 - If user asks about historic performance, reference CAGR, Sharpe, Sortino, downside capture from analytics.
+- Past returns are not a forecast: never promise or imply future returns, and never call an equity fund "safe" or "low risk". Say when expense ratio is unavailable.
 - Never hallucinate ISINs or NAVs; use only provided fund context.
 - Be concise, friendly, and actionable.
 """
 
 def build_fund_context(db: Session) -> str:
     # Only holistic funds with real 5Y analytics, sorted by Sharpe for low-risk credibility
-    rows = db.query(MutualFundScheme, SchemeAnalytics).join(SchemeAnalytics, MutualFundScheme.scheme_id == SchemeAnalytics.scheme_id).filter(SchemeAnalytics.time_horizon_years==5, SchemeAnalytics.cagr > 0).order_by(SchemeAnalytics.sharpe_ratio.desc()).limit(12).all()
+    rows = db.query(MutualFundScheme, SchemeAnalytics).join(SchemeAnalytics, MutualFundScheme.scheme_id == SchemeAnalytics.scheme_id).filter(MutualFundScheme.is_active == True, SchemeAnalytics.time_horizon_years==5, SchemeAnalytics.cagr > 0).order_by(SchemeAnalytics.sharpe_ratio.desc()).limit(12).all()
     if not rows:
         rows = db.query(MutualFundScheme, SchemeAnalytics).join(SchemeAnalytics, MutualFundScheme.scheme_id == SchemeAnalytics.scheme_id).filter(SchemeAnalytics.time_horizon_years==5).order_by(SchemeAnalytics.cagr.desc()).limit(12).all()
     lines = []
     for s, a in rows:
-        lines.append(f"- {s.scheme_name} ({s.category}, {s.amc_name}, expense {float(s.expense_ratio):.2f}%, 5Y CAGR {float(a.cagr):.1f}%, Sharpe {float(a.sharpe_ratio):.2f}, Sortino {float(a.sortino_ratio):.2f})")
+        lines.append(f"- {s.scheme_name} ({s.category}, {s.amc_name}, expense {("%.2f%%" % float(s.ter_pct)) if s.ter_pct is not None else "n/a"}, 5Y CAGR {float(a.cagr):.1f}%, Sharpe {float(a.sharpe_ratio):.2f}, Sortino {float(a.sortino_ratio):.2f})")
     if not lines:
         # fallback to top 8 Direct Growth
         for s in db.query(MutualFundScheme).filter(MutualFundScheme.plan_type=="Direct").limit(8).all():

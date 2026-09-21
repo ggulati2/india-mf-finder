@@ -17,20 +17,11 @@ async def get_holistic(scheme_id: int, years: int = Query(5), db: Session = Depe
     nav_df = pd.DataFrame([{"date": r.time, "nav": float(r.nav)} for r in nav_rows]) if nav_rows else pd.DataFrame()
     if not nav_df.empty:
         nav_df["date"] = pd.to_datetime(nav_df["date"])
-        nav_df = nav_df.sort_values("date")
+        from app.engine.quality import clean_nav
+        nav_df, _ = clean_nav(nav_df, scheme.category)
 
     # analytics
     analytics = {a.time_horizon_years: a for a in db.query(SchemeAnalytics).filter(SchemeAnalytics.scheme_id == scheme_id).all()}
-
-    # holdings
-    from app.engine.holdings import get_holdings_detail
-    holdings = get_holdings_detail(scheme_id, scheme.category)
-    # sector allocation
-    from collections import Counter
-    sector_w = Counter()
-    for h in holdings:
-        sector_w[h["sector"]] += h["weight"]
-    sector_alloc = [{"sector": k, "weight": round(v,1)} for k,v in sector_w.most_common()]
 
     # risk
     from app.engine.risk import max_drawdown, rolling_returns_series, sip_xirr
@@ -56,28 +47,41 @@ async def get_holistic(scheme_id: int, years: int = Query(5), db: Session = Depe
     except Exception:
         bench_cagr = None
 
+    vol5 = next((analytics[h] for h in (5, 3, 1) if h in analytics), None)
+    from app.engine.risk_level import risk_level
+    level = risk_level(scheme.category, scheme.sebi_category,
+                       float(vol5.volatility) if vol5 and vol5.volatility is not None else None,
+                       float(vol5.max_drawdown) if vol5 and vol5.max_drawdown is not None else None)
+
+    def n(x):
+        return float(x) if x is not None else None
+
     return {
         "scheme": {
             "scheme_id": scheme.scheme_id,
             "scheme_name": scheme.scheme_name,
             "amc_name": scheme.amc_name,
             "category": scheme.category,
-            "expense_ratio": float(scheme.expense_ratio),
-            "launch_date": str(scheme.launch_date),
+            "sebi_category": scheme.sebi_category,
+            "expense_ratio": n(scheme.ter_pct),
+            "launch_date": str(scheme.history_start) if scheme.history_start else None,
         },
-        "analytics": {k: {"cagr": float(v.cagr) if v.cagr else 0, "sharpe": float(v.sharpe_ratio) if v.sharpe_ratio else 0, "sortino": float(v.sortino_ratio) if v.sortino_ratio else 0, "beta": float(v.beta) if v.beta else 0} for k,v in analytics.items()},
-        "risk": {"max_drawdown": round(mdd,2), "rolling_3y": rolling[:100], "sip_xirr_5y": sip, "benchmark_nifty_cagr": bench_cagr},
-        "holdings": holdings[:20],
-        "sector_allocation": sector_alloc,
-        "nav_history": [{"date": str(r.time), "nav": float(r.nav)} for r in nav_rows[-252*years:]] if nav_rows else [],
-        "data_source": "mfapi.in / AMFI via historic_nav.py; holdings synthetic deterministic per category; Nifty via Yahoo Finance",
+        "analytics": {k: {"cagr": n(v.cagr), "sharpe": n(v.sharpe_ratio), "sortino": n(v.sortino_ratio), "beta": n(v.beta),
+                          "volatility": n(v.volatility), "max_drawdown": n(v.max_drawdown), "history_years": n(v.history_years)}
+                      for k, v in analytics.items()},
+        "risk": {**level, "max_drawdown": round(mdd, 2), "rolling_3y": rolling[:100],
+                 "sip_xirr_5y": sip, "benchmark_nifty_cagr": bench_cagr},
+        "holdings": [],
+        "sector_allocation": [],
+        "holdings_note": "Portfolio holdings are not shown: there is no verified public data feed for them yet.",
+        "nav_history": [{"date": str(d.date()), "nav": float(v)} for d, v in zip(nav_df["date"], nav_df["nav"])][-252*years:] if not nav_df.empty else [],
+        "data_quality": {
+            "nav_source": "AMFI NAV data via mfapi.in; validated (spikes repaired, gaps/jumps flagged)",
+            "category_source": "AMFI/SEBI scheme category",
+            "expense_source": "AMFI TER disclosure" if scheme.ter_pct is not None else "not available for this scheme",
+            "benchmark": "Nifty 50 price index (Yahoo Finance), excludes dividends",
+            "nav_as_of": str(scheme.latest_nav_date) if scheme.latest_nav_date else None,
+            "flags": [f for f in (scheme.data_flags or "").split(",") if f],
+            "sip_note": "SIP figure is a hypothetical back-test, not a forecast.",
+        },
     }
-
-@router.get("/{scheme_id}/holdings")
-async def get_holdings(scheme_id: int, db: Session = Depends(get_db)):
-    scheme = db.query(MutualFundScheme).filter(MutualFundScheme.scheme_id == scheme_id).first()
-    if not scheme:
-        raise HTTPException(404, "Scheme not found")
-    from app.engine.holdings import get_holdings_detail
-    holdings = get_holdings_detail(scheme_id, scheme.category)
-    return {"scheme_id": scheme_id, "scheme_name": scheme.scheme_name, "holdings": holdings}

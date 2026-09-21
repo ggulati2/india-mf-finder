@@ -17,7 +17,13 @@ class MutualFundScheme(Base):
     option_type = Column(String(20), nullable=False)
     launch_date = Column(Date, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    expense_ratio = Column(Numeric, default=0.0, nullable=False)
+    expense_ratio = Column(Numeric, default=0.0, nullable=False)  # legacy placeholder; use ter_pct
+    # Verified fields (see DATA_QUALITY.md). NULL means "unknown", never a made-up default.
+    sebi_category = Column(String(120))      # official AMFI/SEBI category from NAVAll.txt
+    ter_pct = Column(Numeric)                # Direct plan total expense ratio (AMFI disclosure)
+    history_start = Column(Date)             # first NAV date we hold (launch date proxy)
+    latest_nav_date = Column(Date)
+    data_flags = Column(String(255))         # comma-separated validation flags; non-empty = excluded
 
     nav_data = relationship("SchemeNAVData", back_populates="scheme")
     analytics = relationship("SchemeAnalytics", back_populates="scheme")
@@ -54,6 +60,9 @@ class SchemeAnalytics(Base):
     upside_capture = Column(Numeric)
     downside_capture = Column(Numeric)
     expense_ratio = Column(Numeric)
+    volatility = Column(Numeric)      # annualised std-dev of daily returns, %
+    max_drawdown = Column(Numeric)    # worst peak-to-trough fall inside the window, %
+    history_years = Column(Numeric)   # actual length of the window used
 
     scheme = relationship("MutualFundScheme", back_populates="analytics")
 

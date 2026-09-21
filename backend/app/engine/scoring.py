@@ -114,7 +114,7 @@ def compute_scheme_analytics(
         else:
             cagr = 0.0
         rolling_returns = returns.pct_change().dropna()
-        risk_free_rate = 0.05
+        risk_free_rate = 0.065
         excess_returns = rolling_returns - risk_free_rate / 252
         sharpe_ratio = (excess_returns.mean() / excess_returns.std()) * np.sqrt(252) if excess_returns.std() > 0 else 0
         target_return = risk_free_rate / 252
@@ -146,7 +146,9 @@ def compute_scheme_analytics(
             'beta': _sanitize(float(np.clip(beta, -5, 5))),
             'upside_capture': _sanitize(upside_capture),
             'downside_capture': _sanitize(downside_capture),
-            'volatility': _sanitize(volatility * 100)
+            'volatility': _sanitize(volatility * 100),
+            'max_drawdown': _sanitize(float(((returns / returns.cummax()) - 1).min() * 100)),
+            'history_years': _sanitize(float(years))
         }
         return analytics
     except Exception as e:
@@ -154,7 +156,8 @@ def compute_scheme_analytics(
         return {
             'cagr': 0.0, 'rolling_returns_mean': 0.0, 'rolling_returns_std': 0.0,
             'sharpe_ratio': 0.0, 'sortino_ratio': 0.0, 'jensens_alpha': 0.0,
-            'beta': 0.0, 'upside_capture': 0.0, 'downside_capture': 0.0, 'volatility': 0.0
+            'beta': 0.0, 'upside_capture': 0.0, 'downside_capture': 0.0, 'volatility': 0.0,
+            'max_drawdown': 0.0, 'history_years': 0.0
         }
 
 def calculate_ocs_score(

@@ -8,7 +8,11 @@ export interface Fund {
   plan_type: string;
   option_type: string;
   launch_date: string;
-  expense_ratio: number;
+  expense_ratio: number | null;
+  sebi_category?: string;
+  risk: { level: string; score: number; basis: string };
+  data_as_of?: string | null;
+  history_start?: string | null;
   ocs_score: number;
   analytics: {
     cagr: number;
@@ -17,6 +21,10 @@ export interface Fund {
     beta: number;
     upside_capture: number;
     downside_capture: number;
+    volatility?: number | null;
+    max_drawdown?: number | null;
+    history_years?: number | null;
+    time_horizon?: number;
   };
 }
 

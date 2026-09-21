@@ -48,7 +48,25 @@ def init_db_sync():
     """Initialize database tables"""
     from app.db.models import MutualFundScheme, SchemeNAVData, SchemeAnalytics
     Base.metadata.create_all(bind=engine)
+    ensure_columns()
     print("Database initialized")
+
+_NEW_COLUMNS = {
+    "mutual_fund_schemes": {"sebi_category": "VARCHAR(120)", "ter_pct": "NUMERIC", "history_start": "DATE",
+                            "latest_nav_date": "DATE", "data_flags": "VARCHAR(255)"},
+    "scheme_analytics": {"volatility": "NUMERIC", "max_drawdown": "NUMERIC", "history_years": "NUMERIC"},
+}
+
+def ensure_columns():
+    """Add columns introduced after the first deploy (create_all never alters existing tables)."""
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table, cols in _NEW_COLUMNS.items():
+            have = {c["name"] for c in insp.get_columns(table)}
+            for name, ddl in cols.items():
+                if name not in have:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
 
 async def init_db():
     """Initialize database tables"""

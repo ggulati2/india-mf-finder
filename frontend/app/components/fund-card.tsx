@@ -1,4 +1,5 @@
 import { Fund } from "../types/fund";
+import { riskColor, fmtTer, RISK_HELP } from "./risk";
 
 interface FundCardProps {
   fund: Fund;
@@ -6,11 +7,6 @@ interface FundCardProps {
   onToggle: () => void;
 }
 
-function riskLabel(sharpe: number) {
-  if (sharpe >= 0.7) return { label: "Low risk", color: "text-green-600", bg: "bg-green-50 border-green-200" };
-  if (sharpe >= 0.4) return { label: "Medium risk", color: "text-amber-600", bg: "bg-amber-50 border-amber-200" };
-  return { label: "High risk", color: "text-red-600", bg: "bg-red-50 border-red-200" };
-}
 function steadinessLabel(sortino: number) {
   if (sortino >= 0.9) return { label: "Very steady", color: "text-green-600" };
   if (sortino >= 0.6) return { label: "Steady", color: "text-blue-600" };
@@ -22,9 +18,10 @@ function stars(ocs: number) {
 }
 
 export function FundCard({ fund, selected, onToggle }: FundCardProps) {
-  const risk = riskLabel(fund.analytics.sharpe_ratio);
   const steady = steadinessLabel(fund.analytics.sortino_ratio);
-  const expCost = fund.expense_ratio <= 0.6 ? "Low cost" : fund.expense_ratio <= 0.9 ? "Medium cost" : "High cost";
+  const ter = fund.expense_ratio;
+  const expCost = ter == null ? "Cost n/a" : ter <= 0.6 ? "Low cost" : ter <= 0.9 ? "Medium cost" : "High cost";
+  const horizon = fund.analytics.time_horizon ?? 5;
   const getScoreColor = (score: number) => {
     if (score >= 75) return "text-green-600";
     if (score >= 50) return "text-blue-600";
@@ -53,7 +50,7 @@ export function FundCard({ fund, selected, onToggle }: FundCardProps) {
             {fund.scheme_name}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {fund.amc_name} · {fund.category} · {expCost} ({fund.expense_ratio.toFixed(2)}%)
+            {fund.amc_name} · {fund.category} · {expCost}{ter != null && ` (${fmtTer(ter)})`}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1 ml-3">
@@ -68,13 +65,14 @@ export function FundCard({ fund, selected, onToggle }: FundCardProps) {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-        <div className="text-center" title="Average yearly return over selected horizon — higher is better, but not guaranteed">
-          <p className="text-xs text-gray-400 mb-1">Annual return</p>
+        <div className="text-center" title="Compounded yearly return over the past period, from official NAVs. It is history, not a forecast, and equity returns swing with the market cycle.">
+          <p className="text-xs text-gray-400 mb-1">Past {horizon}Y return / yr</p>
           <p className="text-sm font-bold text-green-600">{fund.analytics.cagr.toFixed(1)}%</p>
         </div>
-        <div className="text-center" title="How bumpy the ride is. Low risk = smoother returns for each unit of risk. Based on Sharpe (higher Sharpe = lower risk).">
+        <div className="text-center" title={RISK_HELP}>
           <p className="text-xs text-gray-400 mb-1">Risk</p>
-          <p className={`text-sm font-bold ${risk.color}`}>{risk.label}</p>
+          <p className={`text-sm font-bold ${riskColor(fund.risk?.level)}`}>{fund.risk?.level ?? "Unknown"}</p>
+          {fund.analytics.max_drawdown != null && <p className="text-[10px] text-gray-400">worst fall {fund.analytics.max_drawdown.toFixed(0)}%</p>}
         </div>
         <div className="text-center" title="How steady past gains were when markets fell. Steady = held up better in downs. Based on Sortino.">
           <p className="text-xs text-gray-400 mb-1">Steadiness</p>
@@ -83,7 +81,7 @@ export function FundCard({ fund, selected, onToggle }: FundCardProps) {
       </div>
       <details className="mt-3 text-xs text-gray-400">
         <summary className="cursor-pointer hover:text-gray-600">Show advanced (Sharpe {fund.analytics.sharpe_ratio.toFixed(2)}, Sortino {fund.analytics.sortino_ratio.toFixed(2)})</summary>
-        <p className="mt-1">Sharpe = return per risk. Sortino = return per downside risk. Higher = better, but we simplify them above as Risk & Steadiness.</p>
+        <p className="mt-1">Sharpe = return per risk. Sortino = return per downside risk. Higher = better, but shown here for reference. Past performance does not guarantee future returns.{fund.data_as_of ? ` NAV data as of ${fund.data_as_of}.` : ""}</p>
       </details>
 
       {selected && (

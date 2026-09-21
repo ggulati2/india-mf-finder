@@ -349,6 +349,9 @@ export default function Dashboard() {
           <p>© 2024 India Mutual Fund Finder</p>
           <p>AI-Powered Analytics Engine</p>
         </div>
+        <p className="max-w-7xl mx-auto px-6 pb-6 text-xs text-gray-400">
+          Information only, not investment advice. Returns are computed from official AMFI NAVs of funds that exist today, so they exclude funds that were closed or merged (survivorship bias) and reflect past market conditions; they are not a forecast. Risk levels are our estimate from past volatility, not the SEBI Riskometer published by each fund house. Expense ratios come from the AMFI disclosure where a match was found. Read the scheme documents and consider a SEBI-registered adviser before investing.
+        </p>
       </footer>
     </div>
   );

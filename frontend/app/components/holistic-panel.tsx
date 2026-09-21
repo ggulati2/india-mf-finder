@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { riskColor, RISK_HELP, fmtTer } from "./risk";
 
 const COLORS = ["#4f46e5","#06b6d4","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#14b8a6"];
 
-function riskText(sharpe:number){ if(sharpe>=0.7) return "Low risk"; if(sharpe>=0.4) return "Medium risk"; return "High risk"; }
 
 export function HolisticPanel({ schemeId }: { schemeId: number }) {
   const [data, setData] = useState<any>(null);
@@ -16,15 +16,17 @@ export function HolisticPanel({ schemeId }: { schemeId: number }) {
   }, [schemeId]);
   if (loading) return <div className="glass-card p-6 animate-pulse h-64" />;
   if (!data) return null;
-  const sharpe = data.analytics?.["5"]?.sharpe ?? data.analytics?.["3"]?.sharpe ?? 0;
+  const hasHoldings = (data.holdings?.length ?? 0) > 0;
+  const dq = data.data_quality;
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="glass-card p-3 text-center" title="Worst fall from a peak — lower is better"><p className="text-xs text-gray-500">Worst fall</p><p className="text-lg font-bold text-red-600">{data.risk.max_drawdown}%</p><p className="text-xs text-gray-400">max drop</p></div>
         <div className="glass-card p-3 text-center" title="Latest 3-year yearly return — shows consistency over time"><p className="text-xs text-gray-500">Last 3Y return</p><p className="text-lg font-bold text-indigo-600">{data.risk.rolling_3y?.slice(-1)[0]?.rolling_cagr ?? "-"}%</p><p className="text-xs text-gray-400">rolling 3Y</p></div>
-        <div className="glass-card p-3 text-center" title="What a monthly SIP of ₹10k would have grown to yearly"><p className="text-xs text-gray-500">SIP growth</p><p className="text-lg font-bold text-green-600">{data.risk.sip_xirr_5y}%<span className="text-xs font-normal">/yr</span></p><p className="text-xs text-gray-400">10k/mo 5Y</p></div>
-        <div className="glass-card p-3 text-center" title="Overall steadiness vs market (from Sharpe)"><p className="text-xs text-gray-500">Steadiness</p><p className="text-lg font-bold text-amber-600">{riskText(sharpe)}</p><p className="text-xs text-gray-400">risk level</p></div>
+        <div className="glass-card p-3 text-center" title="Hypothetical back-test of a ₹10k monthly SIP over the past 5 years. Not a forecast."><p className="text-xs text-gray-500">SIP back-test</p><p className="text-lg font-bold text-green-600">{data.risk.sip_xirr_5y}%<span className="text-xs font-normal">/yr</span></p><p className="text-xs text-gray-400">10k/mo 5Y</p></div>
+        <div className="glass-card p-3 text-center" title={RISK_HELP}><p className="text-xs text-gray-500">Risk (estimated)</p><p className={`text-lg font-bold ${riskColor(data.risk?.level)}`}>{data.risk?.level ?? "Unknown"}</p><p className="text-xs text-gray-400">from past volatility</p></div>
       </div>
+      {hasHoldings ? (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="glass-card p-4">
           <h4 className="font-semibold mb-2" title="Where your money is invested — top stocks in this fund">Top holdings <span className="text-gray-400 font-normal text-xs">(what it owns)</span></h4>
@@ -48,7 +50,13 @@ export function HolisticPanel({ schemeId }: { schemeId: number }) {
           </div>
         </div>
       </div>
-      <p className="text-xs text-gray-400 text-center">Holdings synthetic per category • Risk from 10y NAV • Benchmark Nifty via Yahoo • Tap (?) for plain-English help</p>
+      ) : (
+        <div className="glass-card p-4 text-sm text-gray-500">Portfolio holdings: not shown. {data.holdings_note}</div>
+      )}
+      <div className="text-xs text-gray-400 text-center space-y-0.5">
+        <p>Expense ratio: {fmtTer(data.scheme?.expense_ratio)}{data.scheme?.expense_ratio == null ? " (no verified figure yet)" : ""} · NAV data as of {dq?.nav_as_of ?? "n/a"} · Benchmark: {dq?.benchmark}</p>
+        <p>{dq?.nav_source}. Past performance does not guarantee future returns.</p>
+      </div>
     </div>
   );
 }

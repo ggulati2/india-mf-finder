@@ -38,7 +38,8 @@ async def get_schemes(
             "plan_type": s.plan_type,
             "option_type": s.option_type,
             "launch_date": str(s.launch_date),
-            "expense_ratio": float(s.expense_ratio) if s.expense_ratio else 0.0,
+            "expense_ratio": float(s.ter_pct) if s.ter_pct is not None else None,
+            "sebi_category": s.sebi_category,
             "is_active": s.is_active
         }
         for s in results
