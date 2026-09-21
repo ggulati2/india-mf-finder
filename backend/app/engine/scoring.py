@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from app.engine.benchmark import get_nifty_history_sync
 from scipy import stats
 from typing import Dict, List, Tuple
 from datetime import datetime, timedelta
@@ -76,19 +77,25 @@ def calculate_trend_score(returns: pd.Series, short_window: int = 20, long_windo
     trend_score = (bullish_count / (total_signals * 2)) * 100
     return float(min(100, max(0, trend_score)))
 
-def calculate_beta(returns: pd.Series, market_returns: pd.Series) -> float:
-    if len(returns) < 2 or returns.std() == 0:
+def calculate_beta(fund_returns: pd.Series, market_returns: pd.Series) -> float:
+    """Beta of daily fund returns vs daily market returns (aligned on date index)."""
+    df = pd.concat([fund_returns, market_returns], axis=1, join="inner").dropna()
+    if len(df) < 30:
         return 1.0
-    covariance = returns.cov(market_returns)
-    market_variance = market_returns.var()
-    beta = covariance / market_variance if market_variance > 0 else 1.0
-    return float(beta)
+    market_variance = df.iloc[:, 1].var()
+    if not market_variance or market_variance <= 0:
+        return 1.0
+    return float(df.iloc[:, 0].cov(df.iloc[:, 1]) / market_variance)
 
-def calculate_capture_ratios(returns: pd.Series, rolling_returns: pd.Series) -> Tuple[float, float]:
+def calculate_capture_ratios(fund_returns: pd.Series, market_returns: pd.Series) -> Tuple[float, float]:
+    """Upside/downside capture (%): mean fund return / mean market return on up / down market days."""
     try:
-        if len(rolling_returns) < 2:
+        df = pd.concat([fund_returns, market_returns], axis=1, join="inner").dropna()
+        df.columns = ["f", "m"]
+        up, down = df[df.m > 0], df[df.m < 0]
+        if len(up) < 10 or len(down) < 10 or up.m.mean() == 0 or down.m.mean() == 0:
             return 100.0, 100.0
-        return 95.0, 85.0
+        return float(up.f.mean() / up.m.mean() * 100), float(down.f.mean() / down.m.mean() * 100)
     except Exception:
         return 100.0, 100.0
 
@@ -114,10 +121,17 @@ def compute_scheme_analytics(
         downside_returns = rolling_returns[rolling_returns < target_return]
         downside_deviation = downside_returns.std() if len(downside_returns) > 0 else 0.01
         sortino_ratio = (excess_returns.mean() / downside_deviation) * np.sqrt(252) if downside_deviation > 0 else 0
-        beta = calculate_beta(returns, rolling_returns)
+        fund_daily = rolling_returns.copy()
+        fund_daily.index = nav_df['date'].iloc[1:].values
+        bench = get_nifty_history_sync()
+        if len(bench):
+            market_daily = bench.set_index('date')['close'].pct_change().dropna()
+            beta = calculate_beta(fund_daily, market_daily)
+            upside_capture, downside_capture = calculate_capture_ratios(fund_daily, market_daily)
+        else:
+            beta, (upside_capture, downside_capture) = 1.0, (100.0, 100.0)
         jensens_alpha = cagr - (beta * (risk_free_rate + excess_returns.std()))
-        upside_capture, downside_capture = calculate_capture_ratios(returns, rolling_returns)
-        volatility = returns.std() * np.sqrt(252)
+        volatility = rolling_returns.std() * np.sqrt(252)
         def _sanitize(v):
             if not np.isfinite(v):
                 return 0.0

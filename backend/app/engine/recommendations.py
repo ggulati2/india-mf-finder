@@ -4,6 +4,9 @@ from app.engine.scoring import calculate_ocs_score, compute_scheme_analytics
 import numpy as np
 import pandas as pd
 import logging
+from datetime import date, timedelta
+from sqlalchemy import func
+from app.db.models import SchemeNAVData
 
 logger = logging.getLogger(__name__)
 
@@ -100,12 +103,20 @@ def get_top_funds(
         
         if category:
             query = query.filter(MutualFundScheme.category == category)
-        
+        else:
+            # "Other" holds closed-ended / unclassifiable schemes; never recommend them unprompted
+            query = query.filter(MutualFundScheme.category != "Other")
+
         # Filter to direct plans only
         query = query.filter(MutualFundScheme.plan_type == "Direct")
         
         # Execute query
-        results = query.all()
+        # Drop defunct/matured schemes: their frozen history would otherwise score well
+        cutoff = date.today() - timedelta(days=60)
+        active_ids = {r[0] for r in db.query(SchemeNAVData.scheme_id)
+                      .group_by(SchemeNAVData.scheme_id)
+                      .having(func.max(SchemeNAVData.time) >= cutoff).all()}
+        results = [s for s in query.all() if s.scheme_id in active_ids]
         
         fund_scores = []
         

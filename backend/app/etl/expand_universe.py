@@ -35,11 +35,12 @@ async def expand_universe_from_mfapi(limit_per_category=20):
             if "large cap" in n: return "Large Cap"
             if "flexi cap" in n: return "Flexi Cap"
             if "elss" in n or "tax saver" in n: return "ELSS"
-            if any(x in n for x in ["gilt","liquid","debt","corporate bond","banking","credit risk","overnight","money market"]): return "Debt"
-            if "hybrid" in n or "balanced advantage" in n or "aggressive hybrid" in n or "arbitrage" in n: return "Hybrid"
-            if "index" in n or "nifty" in n or "sensex" in n: return "Index"
-            if "sector" in n or "pharma" in n or "bank" in n or "infra" in n: return "Sectoral"
-            return "Flexi Cap"
+            if any(x in n for x in ["interval","treasury","fixed maturity","fixed term","fmp","income","bond","duration","floater","savings","cash","gilt","liquid","debt","banking & psu","banking and psu","credit risk","overnight","money market","maturity","target","ftif","ftp","fixed horizon","fixed tenure","ultra short","short term","short to","dual advantage","dynamic term","days)"]): return "Debt"
+            if "hybrid" in n or "balanced" in n or "arbitrage" in n or "equity savings" in n or "multi asset" in n: return "Hybrid"
+            if any(x in n for x in ["index","nifty","sensex","etf","gold","silver","fund of fund","fof"]): return "Index"
+            if any(x in n for x in ["sector","pharma","bank","infra","technology","it fund","consumption","psu","manufactur","energy","health"]): return "Sectoral"
+            if "focused" in n or "multi cap" in n or "multicap" in n or "value" in n or "contra" in n or "dividend yield" in n: return "Flexi Cap"
+            return "Other"
 
         # Group and sample
         from collections import defaultdict
