@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_DB: mfinder
+      POSTGRES_USER: mfinder
+      POSTGRES_PASSWORD: mfinder_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/app/db/migrations:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://mfinder:mfinder_password@postgres:5432/mfinder
+      REDIS_URL: redis://redis:6379/0
+      PYTHONPATH: /app/backend
+    volumes:
+      - ./backend:/app/backend
+      - ./logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    command: celery -A app.worker worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://mfinder:mfinder_password@postgres:5432/mfinder
+      REDIS_URL: redis://redis:6379/0
+      PYTHONPATH: /app/backend
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app/frontend
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  logs:
