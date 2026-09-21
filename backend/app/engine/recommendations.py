@@ -171,8 +171,13 @@ def get_top_funds(
             
             fund_scores.append(fund_recommendation)
         
-        # Sort by OCS score
-        fund_scores.sort(key=lambda x: x['investment_mode_adjusted_score'], reverse=True)
+        # Risk-aware sorting — low risk sorts by stability, high risk by return
+        if risk_appetite.lower() == 'low':
+            fund_scores.sort(key=lambda x: (x['analytics']['sharpe_ratio'] + x['analytics']['sortino_ratio'])/2, reverse=True)
+        elif risk_appetite.lower() == 'high':
+            fund_scores.sort(key=lambda x: x['analytics']['cagr'], reverse=True)
+        else:
+            fund_scores.sort(key=lambda x: x['investment_mode_adjusted_score'], reverse=True)
         
         # Apply AMC cap rule: no single AMC > 33%
         filtered_funds = []

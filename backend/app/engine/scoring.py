@@ -154,26 +154,31 @@ def calculate_ocs_score(
     consistency_score = category_scores.get('consistency', 50.0)
     fundamentals_score = category_scores.get('fundamentals', 50.0)
     trend_score = category_scores.get('trend', 50.0)
+    # Risk-aware weighting — makes risk filter actually change ranking
+    if risk_appetite.lower() == 'low':
+        # Conservative: ultra-favor risk-adjusted & consistency
+        w_rolling, w_risk, w_cons, w_fund, w_trend = 0.05, 0.50, 0.35, 0.05, 0.05
+    elif risk_appetite.lower() == 'high':
+        # Aggressive: ultra-favor rolling returns & trend
+        w_rolling, w_risk, w_cons, w_fund, w_trend = 0.50, 0.05, 0.05, 0.15, 0.25
+    else:
+        w_rolling, w_risk, w_cons, w_fund, w_trend = 0.25, 0.25, 0.20, 0.15, 0.15
     ocs = (
-        0.25 * rolling_returns_score +
-        0.25 * risk_adjusted_score +
-        0.20 * consistency_score +
-        0.15 * fundamentals_score +
-        0.15 * trend_score
+        w_rolling * rolling_returns_score +
+        w_risk * risk_adjusted_score +
+        w_cons * consistency_score +
+        w_fund * fundamentals_score +
+        w_trend * trend_score
     )
     if investment_mode.lower() == 'lump sum':
-        ocs *= 1.1
+        ocs *= 1.05
         pe_ratio = scheme_data.get('pe_ratio', 0)
         if pe_ratio > 1.5:
             ocs *= 0.9
     elif investment_mode.lower() == 'sip':
-        ocs *= 1.05
+        ocs *= 1.02
         volatility = scheme_data.get('volatility', 0)
         if volatility > 0.3:
-            ocs *= 0.95
-    if risk_appetite.lower() == 'low':
-        ocs *= 1.1
-    elif risk_appetite.lower() == 'high':
-        ocs *= 0.95
+            ocs *= 0.97
     ocs = max(0.0, min(100.0, ocs))
     return float(ocs)
