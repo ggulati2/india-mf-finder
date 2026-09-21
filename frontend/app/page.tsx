@@ -5,25 +5,11 @@ import { FundCard } from "./components/fund-card";
 import { ComparisonTable } from "./components/comparison-table";
 import { RollingReturnsChart } from "./components/rolling-returns-chart";
 import { OverlapMatrix } from "./components/overlap-matrix";
-import { FundFilter } from "./components/fund-filter";
 import { ChatTab } from "./components/chat-tab";
 import { NavHistoryChart } from "./components/nav-history-chart";
 import { HolisticPanel } from "./components/holistic-panel";
 import { SipCalculator } from "./components/sip-calculator";
-
-interface Fund {
-  scheme_id: number;
-  scheme_name: string;
-  amc_name: string;
-  category: string;
-  ocs_score: number;
-  analytics: {
-    cagr: number;
-    sharpe_ratio: number;
-    sortino_ratio: number;
-    beta: number;
-  };
-}
+import type { Fund } from "./types/fund";
 
 export default function Dashboard() {
   const [funds, setFunds] = useState<Fund[]>([]);
