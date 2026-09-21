@@ -42,9 +42,10 @@ export default function Dashboard() {
       });
       const response = await fetch(`/api/recommendations/funds?${params}`);
       const data = await response.json();
-      setFunds(data);
+      setFunds(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching funds:", error);
+      setFunds([]);
     } finally {
       setLoading(false);
     }

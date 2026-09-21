@@ -6,7 +6,7 @@ interface ComparisonTableProps {
 }
 
 export function ComparisonTable({ funds, selectedFunds }: ComparisonTableProps) {
-  if (selectedFunds.length < 2) {
+  if (selectedFunds.length < 2 || !funds || funds.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
         Select at least 2 funds to compare
@@ -43,11 +43,16 @@ export function ComparisonTable({ funds, selectedFunds }: ComparisonTableProps) 
           {metrics.map((metric) => (
             <tr key={metric.key} className="border-b last:border-0">
               <td className="p-2 text-gray-600">{metric.label}</td>
-              {selectedFundsData.map((fund) => (
-                <td key={fund.scheme_id} className="p-2 text-right font-medium">
-                  {metric.format(fund.analytics[metric.key as keyof Fund['analytics']] || 0)}
-                </td>
-              ))}
+              {selectedFundsData.map((fund) => {
+                const value = metric.key === "ocs_score" 
+                  ? fund.ocs_score 
+                  : fund.analytics[metric.key as keyof Fund['analytics']] || 0;
+                return (
+                  <td key={fund.scheme_id} className="p-2 text-right font-medium">
+                    {metric.format(value as number)}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
