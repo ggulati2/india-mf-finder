@@ -449,12 +449,20 @@ def clean_scheme_name(name: str) -> str:
     dash (e.g. 360 ONE: "360 ONE Dynamic Term Fund -  An Open Ended Dynamic Term Scheme
     investing across duration. A relatively high interest rate risk..." - the long SEBI-mandated
     category/risk descriptor after " - " was left unstripped and matched nothing in our DB,
-    whose AMFI-sourced names instead use that same dash for " - Direct Plan - Growth")."""
+    whose AMFI-sourced names instead use that same dash for " - Direct Plan - Growth").
+
+    The dash strip only fires when the text after it starts with SEBI's standard "An Open
+    Ended.../An Open-Ended.../A Close Ended..." category-descriptor phrasing (the same signal
+    _NAME_BOILERPLATE already uses elsewhere in this file) - NOT on every dash. A blanket
+    "cut at the first dash" broke Bajaj Finserv ELSS, whose real, AMFI-registered name is
+    "Bajaj Finserv ELSS - Tax Saver Fund - Direct Plan - Growth": the dash there is part of the
+    genuine scheme name, not a boilerplate separator, and blindly cutting at it lost "Tax Saver
+    Fund" and matched nothing in our DB either."""
     n = name.strip()
     n = re.sub(r"^portfolio\s+of\s+", "", n, flags=re.I)
     n = re.sub(r"\s+as\s+on\s+.*$", "", n, flags=re.I)
     n = re.split(r"\s+\(", n, 1)[0].strip()
-    return re.split(r"\s+-\s+", n, 1)[0].strip()
+    return re.split(r"\s+-\s+(?=an?\s+open|an?\s+close)", n, 1, flags=re.I)[0].strip()
 
 
 # --- Baroda BNP Paribas: risk level + caption are baked into ONE image per scheme (not a small
