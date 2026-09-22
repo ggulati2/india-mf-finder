@@ -36,8 +36,8 @@ async def get_holistic(scheme_id: int, years: int = Query(5), db: Session = Depe
     # benchmark comparison (optional, not blocking)
     bench_cagr = None
     try:
-        from app.engine.benchmark import fetch_nifty_history
-        bench_df = await fetch_nifty_history(days=int(years*365))
+        from app.engine.benchmark import get_nifty_history_sync
+        bench_df = get_nifty_history_sync()  # disk-cached (24h), avoids a live Yahoo call per request
         if not bench_df.empty and not nav_df.empty:
             # compute bench CAGR over same window
             cutoff = nav_df["date"].max() - pd.Timedelta(days=int(years*365.25))

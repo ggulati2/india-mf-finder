@@ -88,7 +88,7 @@ export default function Dashboard() {
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-white rounded-full blur-3xl -translate-y-1/2"></div>
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white rounded-full blur-3xl translate-y-1/2"></div>
         </div>
-        <div className="relative max-w-7xl mx-auto px-6 py-12 md:py-16">
+        <div className="relative max-w-[1600px] mx-auto px-6 py-12 md:py-16">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0/24 24">
@@ -109,7 +109,7 @@ export default function Dashboard() {
       </header>
 
       {/* Tabs */}
-      <div className="max-w-7xl mx-auto px-6 pt-6">
+      <div className="max-w-[1600px] mx-auto px-6 pt-6">
         <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
           <button onClick={()=>setActiveTab("discover")} className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab==="discover" ? "bg-white dark:bg-gray-700 shadow text-indigo-600" : "text-gray-500"}`}>Discover</button>
           <button onClick={()=>setActiveTab("chat")} className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab==="chat" ? "bg-white dark:bg-gray-700 shadow text-indigo-600" : "text-gray-500"}`}>GenAI Chat</button>
@@ -117,7 +117,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-[1600px] mx-auto px-6 py-8 space-y-8">
         {activeTab === "chat" ? (
           <ChatTab />
         ) : (
@@ -252,17 +252,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Fund Cards */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Recommended Funds</h2>
               <span className="text-sm text-gray-500">Click to select for comparison • Sorted by {sortBy}</span>
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map((i) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div key={i} className="glass-card p-6 animate-pulse">
                     <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
                     <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
@@ -281,7 +281,7 @@ export default function Dashboard() {
                 <p className="text-gray-500">Try lowering sliders or changing category.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {sortedFunds.map((fund) => (
                   <FundCard
                     key={fund.scheme_id}
@@ -348,11 +348,11 @@ export default function Dashboard() {
 
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-gray-800 mt-12">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between text-sm text-gray-500">
+        <div className="max-w-[1600px] mx-auto px-6 py-6 flex items-center justify-between text-sm text-gray-500">
           <p>© 2024 India Mutual Fund Finder</p>
           <p>AI-Powered Analytics Engine</p>
         </div>
-        <p className="max-w-7xl mx-auto px-6 pb-6 text-xs text-gray-400">
+        <p className="max-w-[1600px] mx-auto px-6 pb-6 text-xs text-gray-400">
           Information only, not investment advice. Returns are computed from official AMFI NAVs of funds that exist today, so they exclude funds that were closed or merged (survivorship bias) and reflect past market conditions; they are not a forecast. Risk levels are our estimate from past volatility, not the SEBI Riskometer published by each fund house. Expense ratios come from the AMFI disclosure where a match was found. Read the scheme documents and consider a SEBI-registered adviser before investing.
         </p>
       </footer>

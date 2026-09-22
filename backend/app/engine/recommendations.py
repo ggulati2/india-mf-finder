@@ -9,82 +9,55 @@ from app.engine.confidence import data_confidence
 
 logger = logging.getLogger(__name__)
 
-def get_category_scores(db: Session, scheme_id: int) -> dict:
-    """Get category-based scores for normalizing within category"""
+def _calculate_percentile_score(value, sorted_values) -> float:
+    if not sorted_values or value is None:
+        return 50.0
+    index = np.searchsorted(sorted_values, value)
+    return float(index / len(sorted_values) * 100)
+
+
+def build_category_stats(schemes: list, analytics_by_scheme: dict) -> dict:
+    """Precompute each category's cagr/sharpe/std distributions ONCE, instead of re-querying and
+    re-aggregating the whole category for every single scheme (that was the O(n * category_size)
+    query blow-up that made recommendations take 15s+)."""
+    by_category = {}
+    for scheme in schemes:
+        a = analytics_by_scheme.get(scheme.scheme_id)
+        if not a:
+            continue
+        by_category.setdefault(scheme.category, {'cagr': [], 'sharpe': [], 'std': [], 'sortino': []})
+        if a.cagr is not None: by_category[scheme.category]['cagr'].append(float(a.cagr))
+        if a.sharpe_ratio is not None: by_category[scheme.category]['sharpe'].append(float(a.sharpe_ratio))
+        if a.rolling_returns_std is not None: by_category[scheme.category]['std'].append(float(a.rolling_returns_std))
+        if a.sortino_ratio is not None: by_category[scheme.category]['sortino'].append(float(a.sortino_ratio))
+    for cat, v in by_category.items():
+        for k in v:
+            v[k].sort()
+    return by_category
+
+
+def get_category_scores(category: str, analytics, category_stats: dict) -> dict:
+    """Percentile-rank a scheme's analytics against its precomputed category distribution."""
+    stats = category_stats.get(category)
+    default = {'rolling_returns': 50.0, 'risk_adjusted': 50.0, 'consistency': 50.0,
+              'fundamentals': 50.0, 'trend': 50.0}
+    if not stats or not analytics:
+        return default
     try:
-        scheme = db.query(MutualFundScheme).filter(
-            MutualFundScheme.scheme_id == scheme_id
-        ).first()
-        
-        if not scheme:
-            return {'rolling_returns': 50.0, 'risk_adjusted': 50.0, 'consistency': 50.0, 
-                   'fundamentals': 50.0, 'trend': 50.0}
-        
-        # Get analytics for the scheme
-        analytics = db.query(SchemeAnalytics).filter(
-            SchemeAnalytics.scheme_id == scheme_id
-        ).first()
-        
-        # Get all schemes in the same category for comparison
-        category_schemes = db.query(SchemeAnalytics).join(
-            MutualFundScheme
-        ).filter(
-            MutualFundScheme.category == scheme.category
-        ).all()
-        
-        if not category_schemes:
-            return {'rolling_returns': 50.0, 'risk_adjusted': 50.0, 'consistency': 50.0, 
-                   'fundamentals': 50.0, 'trend': 50.0}
-        
-        # Calculate category averages
-        cagr_values = [a.cagr for a in category_schemes if a.cagr is not None]
-        sharpe_values = [a.sharpe_ratio for a in category_schemes if a.sharpe_ratio is not None]
-        std_values = [a.rolling_returns_std for a in category_schemes if a.rolling_returns_std is not None]
-        sortino_values = [a.sortino_ratio for a in category_schemes if a.sortino_ratio is not None]
-        
-        # Calculate category averages
-        category_avg_cagr = np.mean(cagr_values) if cagr_values else 0
-        category_avg_sharpe = np.mean(sharpe_values) if sharpe_values else 0
-        category_avg_std = np.mean(std_values) if std_values else 0
-        category_avg_sortino = np.mean(sortino_values) if sortino_values else 0
-        
-        # Get current scheme metrics
-        current_cagr = analytics.cagr if analytics else 0
-        current_sharpe = analytics.sharpe_ratio if analytics else 0
-        current_std = analytics.rolling_returns_std if analytics else 0
-        current_sortino = analytics.sortino_ratio if analytics else 0
-        
-        # Calculate scores (0-100 scale)
-        def calculate_percentile_score(value, values):
-            if not values:
-                return 50.0
-            sorted_values = sorted(values)
-            index = np.searchsorted(sorted_values, value)
-            percentile = (index / len(sorted_values)) * 100
-            return float(percentile)
-        
-        # Calculate component scores
-        rolling_returns_score = calculate_percentile_score(current_cagr, cagr_values)
-        risk_adjusted_score = calculate_percentile_score(current_sharpe, sharpe_values)
-        consistency_score = calculate_percentile_score(category_avg_std, std_values)
-        fundamentals_score = 50.0  # Placeholder
-        trend_score = 50.0  # Placeholder
-        
-        # Invert consistency score (lower std = higher score)
-        consistency_score = 100 - consistency_score
-        
+        category_avg_std = np.mean(stats['std']) if stats['std'] else 0
+        rolling_returns_score = _calculate_percentile_score(analytics.cagr, stats['cagr'])
+        risk_adjusted_score = _calculate_percentile_score(analytics.sharpe_ratio, stats['sharpe'])
+        consistency_score = 100 - _calculate_percentile_score(category_avg_std, stats['std'])
         return {
             'rolling_returns': rolling_returns_score,
             'risk_adjusted': risk_adjusted_score,
             'consistency': consistency_score,
-            'fundamentals': fundamentals_score,
-            'trend': trend_score
+            'fundamentals': 50.0,  # Placeholder
+            'trend': 50.0,  # Placeholder
         }
-        
     except Exception as e:
         logger.error(f"Error getting category scores: {e}")
-        return {'rolling_returns': 50.0, 'risk_adjusted': 50.0, 'consistency': 50.0, 
-               'fundamentals': 50.0, 'trend': 50.0}
+        return default
 
 def get_top_funds(
     investment_amount: float,
@@ -113,17 +86,24 @@ def get_top_funds(
         # Only verified, live Direct-Growth schemes; analytics rows exist only if NAV validation passed
         query = query.filter(MutualFundScheme.is_active == True)  # noqa: E712
         results = query.all()
+        scheme_ids = [s.scheme_id for s in results]
 
         from app.db.models import SchemeHolding
         with_holdings = {r[0] for r in db.query(SchemeHolding.scheme_id).distinct()}
+        # One query for every scheme's analytics at this horizon, instead of one query per scheme
+        # (was N+1: ~1200 schemes -> ~1200 queries, plus another full category re-scan per scheme).
+        analytics_by_scheme = {
+            a.scheme_id: a for a in db.query(SchemeAnalytics).filter(
+                SchemeAnalytics.scheme_id.in_(scheme_ids),
+                SchemeAnalytics.time_horizon_years == horizon_years,
+            )
+        }
+        category_stats = build_category_stats(results, analytics_by_scheme)
         fund_scores = []
-        
+
         for scheme in results:
             # Get analytics if available — skip funds without real history for holistic decision
-            analytics = db.query(SchemeAnalytics).filter(
-                SchemeAnalytics.scheme_id == scheme.scheme_id,
-                SchemeAnalytics.time_horizon_years == horizon_years
-            ).first()
+            analytics = analytics_by_scheme.get(scheme.scheme_id)
             # Require real historic analytics (non-zero CAGR/Sharpe) to ensure holistic data
             if not analytics or (float(analytics.cagr or 0) == 0 and float(analytics.sharpe_ratio or 0) == 0):
                 continue
@@ -142,7 +122,7 @@ def get_top_funds(
                 continue
 
             # Get category scores for anti-bias normalization
-            category_scores = get_category_scores(db, scheme.scheme_id)
+            category_scores = get_category_scores(scheme.category, analytics, category_stats)
             
             # Prepare scheme data for OCS calculation
             scheme_data = {

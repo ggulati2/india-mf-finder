@@ -11,21 +11,27 @@ def max_drawdown(nav_series: pd.Series) -> float:
     return float(dd.min() * 100)
 
 def rolling_returns_series(nav_df: pd.DataFrame, window_years: int = 3) -> list:
-    """3Y rolling returns time series for chart."""
-    if len(nav_df) < window_years*250:
+    """3Y rolling returns time series for chart.
+
+    Vectorised with numpy instead of a per-row `.iloc[]` loop: for ~10 years of daily NAVs that
+    loop made ~6,000 pandas row-indexing calls, each with real overhead, costing over a second.
+    """
+    window = int(window_years * 252)
+    if len(nav_df) <= window:
         return []
     nav_df = nav_df.sort_values("date")
-    out = []
-    window = int(window_years*252)
-    for i in range(window, len(nav_df)):
-        start = nav_df.iloc[i-window]["nav"]
-        end = nav_df.iloc[i]["nav"]
-        if start > 0:
-            cagr = (end/start)**(1/window_years) - 1
-            out.append({"date": str(nav_df.iloc[i]["date"].date()), "rolling_cagr": round(float(cagr*100),2)})
+    navs = nav_df["nav"].to_numpy()
+    dates = nav_df["date"].to_numpy()
+    start, end = navs[:-window], navs[window:]
+    valid = start > 0
+    cagr = np.where(valid, (end / np.where(valid, start, 1.0)) ** (1 / window_years) - 1, np.nan)
+    out = [
+        {"date": str(pd.Timestamp(d).date()), "rolling_cagr": round(float(c * 100), 2)}
+        for c, d in zip(cagr, dates[window:]) if not np.isnan(c)
+    ]
     # downsample to ~100 points
     if len(out) > 120:
-        step = len(out)//100
+        step = len(out) // 100
         out = out[::step]
     return out
 
