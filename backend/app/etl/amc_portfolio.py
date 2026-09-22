@@ -132,7 +132,7 @@ def parse_holdings(ws) -> List[dict]:
                 if "name of" in c and "instrument" in c: col["name"] = j
                 elif c.strip() == "isin" or c.strip().startswith("isin"): col["isin"] = j
                 elif "industry" in c or "rating" in c: col["sector"] = j
-                elif "% to nav" in c or "% to net asset" in c: col["pct"] = j
+                elif "% to nav" in c or "% to net asset" in c or "% to aum" in c: col["pct"] = j
             break
     if hdr is None or "pct" not in col or "name" not in col:
         return []
@@ -152,15 +152,25 @@ def parse_holdings(ws) -> List[dict]:
         return []
     col = {k: v + best_shift for k, v in col.items()}
 
-    out = []
+    raw = []
     for r in rows[hdr + 1:]:
         isin = r[col["isin"]] if col["isin"] < len(r) else None
         pct = _num(r[col["pct"]]) if col["pct"] < len(r) else None
         if not (isin and ISIN_RE.match(str(isin).strip())) or pct is None:
             continue
+        raw.append((isin, r, pct))
+    if not raw:
+        return []
+    # Most AMCs store the weight as a fraction of NAV (0.0232 = 2.32%); some (Helios) already
+    # store the percentage itself (2.32). Pick whichever scaling makes the total look like a
+    # real portfolio (roughly 30-105% of NAV) rather than assuming one convention.
+    total_raw = sum(p for *_, p in raw)
+    scale = 1 if 30 <= total_raw <= 105 else 100
+    out = []
+    for isin, r, pct in raw:
         out.append({"isin": str(isin).strip(), "name": str(r[col["name"]]).strip()[:255],
                     "sector": (str(r[col["sector"]]).strip()[:120] if col.get("sector") is not None and col["sector"] < len(r) and r[col["sector"]] else None),
-                    "weight_pct": pct * 100})  # file stores fractions of NAV
+                    "weight_pct": pct * scale})
     return out
 
 
@@ -229,6 +239,48 @@ def parse_workbook_manual_risk(path: str, sheet_risk: Dict[str, str]) -> List[di
     return out
 
 
+# --- Helios: one file per scheme (not one workbook with many sheets), riskometer baked into a
+# single composite image per file like Baroda. Verified by eye 2026-09-22 against the
+# 31-Aug-2026 monthly disclosures; needs re-reading by hand for later months.
+HELIOS_RISK_AUG2026 = {
+    "Helios Small Cap Fund": "Very High",
+    "Helios Arbitrage Fund": "Low",
+    "Helios Balanced Advantage Fund": "Very High",
+    "Helios Financial Services Fund": "Very High",
+    "Helios Flexi Cap Fund": "Very High",
+    "Helios Large & Mid Cap Fund": "Very High",
+    "Helios Mid Cap Fund": "Very High",
+    "Helios Overnight Fund": "Low",
+}
+
+
+def parse_single_scheme_workbook(path: str, scheme_risk: Dict[str, str]) -> List[dict]:
+    """AMCs (e.g. Helios) that publish one file per scheme rather than one workbook with many
+    sheets. The scheme name is read from the sheet itself and matched against a hand-verified
+    {scheme name: level} map."""
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    rows = list(ws.iter_rows(min_row=1, max_row=6, values_only=True))
+    name = None
+    for r in rows:
+        for c in r:
+            if c and str(c).strip().lower().startswith("scheme name"):
+                idx = r.index(c)
+                rest = [x for x in r[idx + 1:] if x]
+                if rest:
+                    name = str(rest[0]).strip()
+        if name:
+            break
+    if not name:  # fallback: first long text cell
+        name = next((str(c) for r in rows for c in r if c and len(str(c)) > 8), None)
+    if not name:
+        return []
+    scheme = re.split(r"\s+\(", name, 1)[0].strip()
+    level = next((v for k, v in scheme_risk.items() if k.lower() == scheme.lower()), None)
+    return [{"sheet": wb.sheetnames[0], "scheme": scheme, "holdings": parse_holdings(ws),
+            "riskometer": level, "riskometer_unrecognised": level is None}]
+
+
 def import_amc(db, amc_key: str, amc_name_like: str, paths: List[str], as_of: date, source_label: str) -> dict:
     """Shared import path for any fund house: parse each workbook, match by name, load holdings
     and Riskometer. `paths` may be several files (e.g. one AMC often splits equity/debt/FoF)."""
@@ -263,6 +315,43 @@ def import_amc(db, amc_key: str, amc_name_like: str, paths: List[str], as_of: da
             db.query(SchemeHolding).filter(SchemeHolding.scheme_id == s.scheme_id).delete()
             for h in p["holdings"]:
                 db.add(SchemeHolding(scheme_id=s.scheme_id, as_of=as_of, source=src, **h))
+        elif p["holdings"]:
+            stats["holdings_rejected"].append((p["scheme"][:40], round(total, 1)))
+    db.commit()
+    return stats
+
+
+def import_amc_multi_file(db, amc_name_like: str, paths: List[str], as_of: date, source_label: str, parser) -> dict:
+    """Like import_amc, for AMCs (e.g. Helios) that publish one file per scheme instead of one
+    workbook with many sheets. `parser(path)` must return the same shape as parse_workbook."""
+    parsed = []
+    for p in paths:
+        parsed += parser(p)
+    index = {}
+    for sch in db.query(MutualFundScheme).filter(MutualFundScheme.is_active == True, MutualFundScheme.amc_name.ilike(f"%{amc_name_like}%")):  # noqa: E712
+        index.setdefault(norm_name(sch.scheme_name), []).append(sch)
+    stats = {"sheets": len(parsed), "matched": 0, "unmatched": [], "ambiguous": [], "holdings_rejected": [],
+             "riskometer_set": 0, "riskometer_unrecognised": 0}
+    for p in parsed:
+        cands = index.get(norm_name(p["scheme"]), [])
+        if not cands:
+            stats["unmatched"].append(p["scheme"][:60])
+            continue
+        if len(cands) > 1:
+            stats["ambiguous"].append(p["scheme"][:60])
+            cands.sort(key=lambda x: x.amfi_code)
+        s = cands[0]
+        stats["matched"] += 1
+        if p["riskometer"]:
+            s.riskometer, s.riskometer_as_of, s.riskometer_source = p["riskometer"], as_of, source_label
+            stats["riskometer_set"] += 1
+        elif p["riskometer_unrecognised"]:
+            stats["riskometer_unrecognised"] += 1
+        total = sum(h["weight_pct"] for h in p["holdings"])
+        if p["holdings"] and 30 <= total <= 105:
+            db.query(SchemeHolding).filter(SchemeHolding.scheme_id == s.scheme_id).delete()
+            for h in p["holdings"]:
+                db.add(SchemeHolding(scheme_id=s.scheme_id, as_of=as_of, source=source_label, **h))
         elif p["holdings"]:
             stats["holdings_rejected"].append((p["scheme"][:40], round(total, 1)))
     db.commit()
