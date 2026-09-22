@@ -10,6 +10,7 @@ Adapters: nippon. (HDFC blocks scripted access; SBI/ICICI load files via JavaScr
 """
 import hashlib
 import html
+import io
 import logging
 import re
 import zipfile
@@ -25,6 +26,26 @@ from app.db.models import MutualFundScheme, SchemeHolding
 from app.etl.master_data import norm_name
 
 logger = logging.getLogger(__name__)
+
+
+def _load_workbook(path: str, **kw):
+    """openpyxl.load_workbook, but immune to a stale file extension.
+
+    openpyxl decides whether to even attempt a file purely from os.path.splitext(path) - it
+    never looks at the actual bytes - so an AMC that publishes modern zip-based XLSX content
+    under a ".xls" URL (Bajaj Finserv does this) gets unconditionally rejected with "does not
+    support the old .xls file format", even though the content is perfectly readable. Passing a
+    file object instead of a path string skips that extension check entirely (openpyxl only
+    branches on it for path-like input), which is exactly what we want since _sheet_dials
+    already opens the same file via zipfile.ZipFile(path) - content-based, extension-agnostic -
+    so the two would otherwise disagree about whether the file is parseable.
+    """
+    # BytesIO rather than a bare file object: several call sites use read_only=True, which reads
+    # worksheet data lazily well after this function returns, so the underlying stream must
+    # outlive the call - an in-memory buffer does that safely without leaking an open fd.
+    with open(path, "rb") as f:
+        buf = io.BytesIO(f.read())
+    return openpyxl.load_workbook(buf, **kw)
 
 # md5 of the *scheme* dial image -> level (verified by viewing each image's printed caption)
 DIALS = {
@@ -144,6 +165,15 @@ DIALS = {
         "aa0e74faa8dcbeedfde29451dd58c323": "Low to Moderate",
         "4f9e23311fcaba12998b4f55362001f5": "Moderate",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure (bajajamc.com, .xls URL but modern
+    # zip-based XLSX content - see _load_workbook - 25 sheets, 4 distinct scheme dials; a 5th
+    # image is a BENCHMARK dial, correctly excluded, not guessed).
+    "bajaj": {
+        "87aa183c4c0e9b38d403011dc3ce3cab": "Very High",
+        "9175623ebc237835c4f983ad20192135": "Low",
+        "d53af50563d2fae639b09db47e03fdca": "Low to Moderate",
+        "cbafe7dcbc7bcf15802047ef21c6579f": "Moderate",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -199,7 +229,7 @@ def _sheet_dials(z: zipfile.ZipFile) -> Dict[str, Optional[str]]:
         for dr in re.findall(r"drawings/(drawing\d+\.xml)", z.read(srels).decode()):
             drx = z.read("xl/drawings/" + dr).decode()
             anchors = re.findall(
-                r"<xdr:from><xdr:col>(\d+)</xdr:col><xdr:colOff>\d+</xdr:colOff><xdr:row>(\d+)</xdr:row>.*?r:embed=\"([^\"]+)\"",
+                r"<xdr:from><xdr:col>(\d+)</xdr:col><xdr:colOff>(\d+)</xdr:colOff><xdr:row>(\d+)</xdr:row><xdr:rowOff>(\d+)</xdr:rowOff>.*?r:embed=\"([^\"]+)\"",
                 drx, re.S)
             rr = z.read(f"xl/drawings/_rels/{dr}.rels").decode()
             emb = {}
@@ -207,7 +237,17 @@ def _sheet_dials(z: zipfile.ZipFile) -> Dict[str, Optional[str]]:
                 i, t = re.search(r'Id="([^"]+)"', rel), re.search(r'Target="([^"]+)"', rel)
                 if i and t and "media/" in t.group(1):
                     emb[i.group(1)] = t.group(1).split("media/")[-1]
-            cands = sorted(((int(rw), int(c)), emb[r]) for c, rw, r in anchors if r in emb)
+            # Sort by cell position (row, col) first - that's the real "topmost, then leftmost"
+            # signal - and only fall back to the sub-cell pixel offset (rowOff, colOff) to break
+            # a tie between two images anchored in the exact same cell (found via Bajaj Finserv,
+            # whose scheme + benchmark dials for one sheet are both anchored at row 125 col 1,
+            # distinguished only by colOff). rowOff/colOff must NOT outrank (row, col): two
+            # images in different cells can differ by a sub-pixel rowOff (tens of thousands of
+            # EMU, noise-level) while very much NOT being vertically tied, and comparing that
+            # first previously picked a benchmark dial one column to the right of the real scheme
+            # dial, because its rowOff happened to be fractionally smaller.
+            cands = sorted(((int(rw), int(c), int(roff), int(coff)), emb[r])
+                            for c, coff, rw, roff, r in anchors if r in emb)
             if cands:  # topmost, then leftmost image = scheme dial
                 out[name] = hashlib.md5(z.read("xl/media/" + cands[0][1])).hexdigest()
     return out
@@ -262,7 +302,13 @@ def parse_holdings(ws) -> List[dict]:
     # header's column indices no longer line up with the data rows. Detect and correct that shift
     # by finding where the ISIN column actually validates; if none does, the file is unparseable.
     best_shift = max(range(-2, 3), key=lambda sh: hits_at(isin_base, sh, is_isin))
-    if hits_at(isin_base, best_shift, is_isin) < 5:
+    # Floor of 3, not 5: a concentrated debt fund can legitimately hold only a handful of
+    # securities (found via Bajaj Finserv Gilt Fund: 1 G-Sec + 3 T-Bills, 4 ISINs total in the
+    # whole sheet) and was being silently rejected as 0 holdings. The header already had to
+    # explicitly declare both "ISIN" and a name column before this function even runs, so a
+    # small hit count here is corroborating evidence for a real, sparse portfolio, not pure
+    # coincidence the way scanning an arbitrary unlabelled column would be.
+    if hits_at(isin_base, best_shift, is_isin) < 3:
         return []
     # A merged/spanning header cell (e.g. "Name of Instrument" merged across several blank
     # columns) can throw the name column off by a different amount than ISIN, so it is aligned
@@ -342,7 +388,7 @@ def parse_workbook(path: str, amc: str = "nippon") -> List[dict]:
     z = zipfile.ZipFile(path)
     dials = _sheet_dials(z)
     table = DIALS[amc]
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    wb = _load_workbook(path, read_only=True, data_only=True)
     out = []
     for sn in wb.sheetnames:
         if sn.lower() == "index":
@@ -394,7 +440,7 @@ def parse_workbook_manual_risk(path: str, sheet_risk: Dict[str, str]) -> List[di
     """Like parse_workbook, but the Riskometer level comes from a hand-verified {sheet: level}
     map rather than an image hash table (for AMCs whose disclosure bakes captions into a
     per-scheme image, so there is no small reusable set of dial images to hash-match)."""
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    wb = _load_workbook(path, read_only=True, data_only=True)
     out = []
     for sn in wb.sheetnames:
         if sn.lower() == "index":
@@ -429,7 +475,7 @@ def parse_single_scheme_workbook(path: str, scheme_risk: Dict[str, str]) -> List
     """AMCs (e.g. Helios) that publish one file per scheme rather than one workbook with many
     sheets. The scheme name is read from the sheet itself and matched against a hand-verified
     {scheme name: level} map."""
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    wb = _load_workbook(path, read_only=True, data_only=True)
     ws = wb[wb.sheetnames[0]]
     rows = list(ws.iter_rows(min_row=1, max_row=6, values_only=True))
     name = None
@@ -457,7 +503,7 @@ def parse_single_scheme_workbook(path: str, scheme_risk: Dict[str, str]) -> List
 # single dedicated sheet ("Tata Scheme Risk-o-Meter") -- no image parsing needed at all, and this
 # self-updates every month automatically (unlike Baroda/Helios's baked-in-image snapshots).
 def parse_tata_workbook(path: str) -> List[dict]:
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    wb = _load_workbook(path, read_only=True, data_only=True)
     risk_sheet = next((n for n in wb.sheetnames if "risk-o-meter" in n.lower() and "benchmark" not in n.lower() and "debt" not in n.lower()), None)
     levels = {}
     if risk_sheet:
@@ -489,7 +535,7 @@ def parse_single_scheme_workbook_hashed(path: str, amc: str) -> List[dict]:
     z = _zip.ZipFile(path)
     dials = _sheet_dials(z)
     table = DIALS[amc]
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    wb = _load_workbook(path, read_only=True, data_only=True)
     ws = wb[wb.sheetnames[0]]
     rows = list(ws.iter_rows(min_row=1, max_row=6, values_only=True))
     # ICICI's layout is fixed: row 0 = AMC name, row 1 = scheme name, row 2 = "Portfolio as on ..."
