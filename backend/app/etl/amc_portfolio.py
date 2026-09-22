@@ -174,6 +174,14 @@ DIALS = {
         "d53af50563d2fae639b09db47e03fdca": "Low to Moderate",
         "cbafe7dcbc7bcf15802047ef21c6579f": "Moderate",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure (360.one, 12 sheets, 5 distinct dials).
+    "360one": {
+        "64394bbcec6a4ec4342e125b8a0d295d": "Very High",
+        "bf0e575695c3694bb115b79180c522b3": "High",
+        "94a73b65f86b400ed37e8e5c7bee07ed": "Moderately High",
+        "be70b4cf27b346e04d0e0d66727fa0a4": "Low to Moderate",
+        "771b7c30714f206c70159c13e5fdccb7": "Low",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -246,8 +254,16 @@ def _sheet_dials(z: zipfile.ZipFile) -> Dict[str, Optional[str]]:
             # EMU, noise-level) while very much NOT being vertically tied, and comparing that
             # first previously picked a benchmark dial one column to the right of the real scheme
             # dial, because its rowOff happened to be fractionally smaller.
+            # A real riskometer dial (readable text on a filled arc) is always a substantial
+            # image - every one verified across every AMC so far is 12.7 KB or more. Found via
+            # 360 ONE: a sheet had a tiny (2 KB, 117x20px) decorative .emf anchored above the
+            # real dial, which won the topmost-then-leftmost sort purely on position despite
+            # obviously not being a dial at all. 5 KB is comfortably below every genuine dial
+            # seen and comfortably above this decorative element, so filtering candidates below
+            # it out before the position sort can only remove non-dial clutter.
             cands = sorted(((int(rw), int(c), int(roff), int(coff)), emb[r])
-                            for c, coff, rw, roff, r in anchors if r in emb)
+                            for c, coff, rw, roff, r in anchors
+                            if r in emb and len(z.read("xl/media/" + emb[r])) >= 5000)
             if cands:  # topmost, then leftmost image = scheme dial
                 out[name] = hashlib.md5(z.read("xl/media/" + cands[0][1])).hexdigest()
     return out
@@ -407,11 +423,16 @@ def parse_workbook(path: str, amc: str = "nippon") -> List[dict]:
 
 def clean_scheme_name(name: str) -> str:
     """Strip the wrapper text some AMCs (e.g. Kotak: "Portfolio of X as on 31-Aug-2026") put
-    around the bare scheme name, and the usual trailing description in parentheses."""
+    around the bare scheme name, and the usual trailing description in parentheses or after a
+    dash (e.g. 360 ONE: "360 ONE Dynamic Term Fund -  An Open Ended Dynamic Term Scheme
+    investing across duration. A relatively high interest rate risk..." - the long SEBI-mandated
+    category/risk descriptor after " - " was left unstripped and matched nothing in our DB,
+    whose AMFI-sourced names instead use that same dash for " - Direct Plan - Growth")."""
     n = name.strip()
     n = re.sub(r"^portfolio\s+of\s+", "", n, flags=re.I)
     n = re.sub(r"\s+as\s+on\s+.*$", "", n, flags=re.I)
-    return re.split(r"\s+\(", n, 1)[0].strip()
+    n = re.split(r"\s+\(", n, 1)[0].strip()
+    return re.split(r"\s+-\s+", n, 1)[0].strip()
 
 
 # --- Baroda BNP Paribas: risk level + caption are baked into ONE image per scheme (not a small
