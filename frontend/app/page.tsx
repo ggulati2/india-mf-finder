@@ -9,6 +9,7 @@ import { ChatTab } from "./components/chat-tab";
 import { NavHistoryChart } from "./components/nav-history-chart";
 import { HolisticPanel } from "./components/holistic-panel";
 import { SipCalculator } from "./components/sip-calculator";
+import { ThemeToggle } from "./components/theme-toggle";
 import type { Fund } from "./types/fund";
 
 export default function Dashboard() {
@@ -99,10 +100,13 @@ export default function Dashboard() {
               <p className="hidden sm:block text-sm text-slate-500 dark:text-slate-400 mt-0.5">Objective, data-driven fund recommendations from official AMFI data</p>
             </div>
           </div>
-          <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5">
-            <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            Built on official AMFI data
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5">
+              <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Built on official AMFI data
+            </span>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

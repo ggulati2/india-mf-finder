@@ -7,11 +7,9 @@
   --background-rgb: 248, 250, 252; /* slate-50 */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 241, 245, 249; /* slate-100 */
-    --background-rgb: 2, 6, 23;      /* slate-950 */
-  }
+:root.dark {
+  --foreground-rgb: 241, 245, 249; /* slate-100 */
+  --background-rgb: 2, 6, 23;      /* slate-950 */
 }
 
 body {
