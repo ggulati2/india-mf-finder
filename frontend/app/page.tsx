@@ -111,11 +111,22 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Disclaimer Banner */}
+      <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/50">
+        <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
+          <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <p><span className="font-semibold">Not financial advice.</span> This tool is for informational purposes only and does not constitute investment advice. Please do your own research and consult a SEBI-registered adviser before investing.</p>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="max-w-[1600px] mx-auto px-6 pt-6">
         <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
           <button onClick={()=>setActiveTab("discover")} className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab==="discover" ? "bg-white dark:bg-gray-700 shadow text-indigo-600" : "text-gray-500"}`}>Discover</button>
-          <button onClick={()=>setActiveTab("chat")} className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab==="chat" ? "bg-white dark:bg-gray-700 shadow text-indigo-600" : "text-gray-500"}`}>GenAI Chat</button>
+          <button onClick={()=>setActiveTab("chat")} className={`px-5 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-1.5 ${activeTab==="chat" ? "bg-white dark:bg-gray-700 shadow text-indigo-600" : "text-gray-500"}`}>
+            Ask Me
+            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">SOON</span>
+          </button>
         </div>
       </div>
 
