@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [minReturn, setMinReturn] = useState(0);
   const [minStars, setMinStars] = useState(1);
   const [completeOnly, setCompleteOnly] = useState(false);
+  const [amcFilter, setAmcFilter] = useState("all");
   const [steadinessFilter, setSteadinessFilter] = useState<string>("all");
 
   const fetchFunds = async () => {
@@ -62,6 +63,7 @@ export default function Dashboard() {
 
   // Filtering and sorting
   const steadinessVal = (sortino: number) => (sortino >= 0.9 ? 2 : sortino >= 0.6 ? 1 : 0);
+  const amcOptions = Array.from(new Set(funds.map((f) => f.amc_name))).sort();
   const filteredFunds = funds.filter((f) => {
     const stars = Math.max(1, Math.round(f.ocs_score / 20));
     const steady = steadinessVal(f.analytics.sortino_ratio);
@@ -70,7 +72,8 @@ export default function Dashboard() {
       f.ocs_score >= minScore &&
       f.analytics.cagr >= minReturn &&
       stars >= minStars &&
-      (steadinessFilter === "all" || steady === steadyFilterVal || (steadinessFilter === "steady+" && steady >= 1))
+      (steadinessFilter === "all" || steady === steadyFilterVal || (steadinessFilter === "steady+" && steady >= 1)) &&
+      (amcFilter === "all" || f.amc_name === amcFilter)
     );
   });
   const sortedFunds = [...filteredFunds].sort((a, b) => {
@@ -178,9 +181,9 @@ export default function Dashboard() {
             <h3 className="font-bold text-gray-800 dark:text-gray-100">Sort & Filter</h3>
             <span className="text-xs text-gray-400 ml-2">{filteredFunds.length} of {funds.length} shown</span>
             <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300" title="Hide funds where any data check is missing (for example expense ratio). Click Find Funds again to apply."><input type="checkbox" checked={completeOnly} onChange={(e)=>setCompleteOnly(e.target.checked)} />Only complete data</label>
-            <button onClick={()=>{setMinScore(0);setMinReturn(0);setMinStars(1);setSteadinessFilter("all");setSortBy("overall");}} className="ml-auto text-xs text-indigo-600 hover:underline">Reset</button>
+            <button onClick={()=>{setMinScore(0);setMinReturn(0);setMinStars(1);setSteadinessFilter("all");setAmcFilter("all");setSortBy("overall");}} className="ml-auto text-xs text-indigo-600 hover:underline">Reset</button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Sort by</label>
               <select value={sortBy} onChange={(e)=>setSortBy(e.target.value as any)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
@@ -188,6 +191,13 @@ export default function Dashboard() {
                 <option value="stars">Star Rating</option>
                 <option value="return">Annual Return</option>
                 <option value="steadiness">Steadiness</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">AMC</label>
+              <select value={amcFilter} onChange={(e)=>setAmcFilter(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+                <option value="all">All AMCs</option>
+                {amcOptions.map((amc) => (<option key={amc} value={amc}>{amc}</option>))}
               </select>
             </div>
             <div>
