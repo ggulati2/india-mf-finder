@@ -87,16 +87,22 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Header */}
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-[1600px] mx-auto px-6 py-5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-white" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
+        <div className="max-w-[1600px] mx-auto px-6 py-8 md:py-10 flex items-center justify-between gap-6 flex-wrap">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-indigo-200 dark:shadow-none">
+              <svg className="w-6 h-6 text-white" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">India Mutual Fund Finder</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Objective, data-driven fund recommendations from official AMFI data</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">India Mutual Fund Finder</h1>
-            <p className="text-xs text-slate-400">Objective, data-driven fund recommendations from official AMFI data</p>
-          </div>
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 rounded-full px-3 py-1.5">
+            <svg className="w-3.5 h-3.5" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Built on official AMFI data
+          </span>
         </div>
       </header>
 
