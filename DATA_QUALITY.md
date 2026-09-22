@@ -10,7 +10,7 @@ official source or clearly labelled as an estimate. Unknown is shown as "n/a", n
 | Expense ratio (TER) | AMFI TER API (`/api/populate-te-rdata-revised`, one Excel per fund house), latest daily row | 1,441 of 1,481 active schemes (97%). Matched by normalised name; no match = "n/a", no fuzzy guessing. Falls back to captn3m0's CSV, which lags AMFI (e.g. Axis Small Cap: CSV 0.54% vs AMFI 0.71% on 18 Sep 2026) |
 | Benchmark (beta, capture) | Nifty 50 price index, Yahoo Finance | Excludes dividends; cached daily in `backend/data/` |
 | Risk level | Official SEBI Riskometer where imported, else a conservative estimate | See below. Every fund shows which one it is |
-| Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India (107), DSP (62), Baroda BNP Paribas (41), Helios (8), Tata (60), Axis (64), ICICI Prudential (96), Kotak Mahindra (94), Franklin Templeton (36) — 9 fund houses, 568 schemes. Others show "not imported yet". Earlier versions showed synthetic data |
+| Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India (107), DSP (62), Baroda BNP Paribas (41), Helios (8), Tata (60), Axis (64), ICICI Prudential (96), Kotak Mahindra (94), Franklin Templeton (36), Motilal Oswal (33) — 10 fund houses, 601 schemes. Others show "not imported yet". Earlier versions showed synthetic data |
 
 ## Validation applied to every NAV series (`app/engine/quality.py`)
 - Zero/negative NAVs and isolated one-day spikes that reverse next day are dropped (`repaired_points`).
@@ -74,6 +74,11 @@ have TWO columns whose text both contain a field's keyword (Franklin's real "% t
 column, plus "Outstanding derivative exposure AS % TO NET ASSETS Long/(Short)" later in the same
 row) — the later one was silently winning and only the few rows with a stray derivative value
 survived. Column detection now keeps the first match for each field, not the last.
+
+Motilal Oswal needed a third scheme-name fix: its sheets open with "Back to Index" and a
+registered-office/CIN block before the real name, so name extraction (`find_scheme_name`) now
+scans the first several rows, skips known boilerplate and parenthetical description lines, and
+prefers a candidate containing "Fund"/"Plan"/"Scheme"/"ETF" when more than one plausible line exists.
 
 Every other AMC is undone. LIC's disclosure link on its own downloads page 404s (stale page cache
 at LIC's end, not ours). Sundaram, Quantum, Choice had no plain file link in the fetched page (need

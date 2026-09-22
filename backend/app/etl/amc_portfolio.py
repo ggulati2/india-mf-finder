@@ -107,6 +107,15 @@ DIALS = {
         "bce797fb4104cc60590b59bcb4cd447f": "Moderately High",
         "f7a7f23a4ea53a803718a27ea5bd654c": "Moderate",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure. Only 5 of 6 levels appeared among
+    # Motilal Oswal's schemes this month; "Moderately High" is absent, not guessed.
+    "motilal": {
+        "7b52146a887ca5689dfdd952ac77cd11": "Very High",
+        "8725f9348eee56031f6ffe03c4c157f0": "Moderate",
+        "9f3786c8d06fd28335db1eac1fca5438": "Low to Moderate",
+        "be16cbb8be1f5e12f2e4f53481403ffe": "Low",
+        "d3c42615d2ead5ed0b70af77a83366a8": "High",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -252,6 +261,26 @@ def parse_holdings(ws) -> List[dict]:
     return out
 
 
+
+_NAME_BOILERPLATE = re.compile(
+    r"^(back to index|portfolio statement|monthly portfolio|registered office|cin\s*:|"
+    r"an open|an close|\(an open|\(an close|investment manager|asset management)", re.I)
+
+
+def find_scheme_name(ws, max_row: int = 10) -> Optional[str]:
+    """Scan the top of a scheme sheet for its name, skipping the boilerplate some AMCs (e.g.
+    Motilal Oswal: 'Back to Index', registered-office block) put in the first row(s) instead.
+    Prefers a candidate containing "Fund"/"Plan"/"Scheme"/"ETF" if one exists."""
+    rows = list(ws.iter_rows(min_row=1, max_row=max_row, values_only=True))
+    candidates = [str(c).strip() for r in rows for c in r
+                 if c and len(str(c).strip()) > 8 and not str(c).strip().startswith("(")
+                 and not _NAME_BOILERPLATE.match(str(c).strip())]
+    if not candidates:
+        return None
+    fundish = [c for c in candidates if re.search(r"\b(fund|plan|scheme|etf)\b", c, re.I)]
+    return (fundish or candidates)[0]
+
+
 def parse_workbook(path: str, amc: str = "nippon") -> List[dict]:
     z = zipfile.ZipFile(path)
     dials = _sheet_dials(z)
@@ -262,8 +291,7 @@ def parse_workbook(path: str, amc: str = "nippon") -> List[dict]:
         if sn.lower() == "index":
             continue
         ws = wb[sn]
-        first = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), ())
-        name = next((str(c) for c in first[0:3] if c and len(str(c)) > 8), None)
+        name = find_scheme_name(ws)
         if not name:
             continue
         h = dials.get(sn)
@@ -315,8 +343,7 @@ def parse_workbook_manual_risk(path: str, sheet_risk: Dict[str, str]) -> List[di
         if sn.lower() == "index":
             continue
         ws = wb[sn]
-        first = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), ())
-        name = next((str(c) for c in first[0:3] if c and len(str(c)) > 8), None)
+        name = find_scheme_name(ws)
         if not name:
             continue
         level = sheet_risk.get(sn)
