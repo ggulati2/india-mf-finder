@@ -32,7 +32,23 @@ DIALS = {
         "680ea1a8cd8e498472e4de667655c206": "Moderately High",
         "4c277ee2c5204cd59b1e30859e13e31c": "High",
         "1c2084171efd47909f7b625137954611": "Very High",
-    }
+    },
+    # Verified 2026-08-31: DSP stacks scheme dial above benchmark dial in the same column;
+    # both sets of six levels present, each hash viewed and matched to its printed caption.
+    "dsp": {
+        "3ec8a2cdec8f83d56bc0990631306644": "Low",
+        "ec9c5df1bbfe81ccd490d9d6036c09dd": "Low to Moderate",
+        "387648944acf503f7dc84b0714fda310": "Moderate",
+        "e8483b48a3a15a815beab0d2ee5d616f": "Moderately High",
+        "d238f38a509dcf8df037ca91fde13aaa": "High",
+        "537ffa356476b57da4a2026c0a1bb52f": "Very High",
+        "b94d26277eb380200e652205b8fbe9d9": "Low",
+        "6dfc8d280bb95aae9187201e85399bdd": "Low to Moderate",
+        "7c7cf1bb4e73885ffe85f77436095fdf": "Moderate",
+        "1fdb1ebe64e9c0dd96b55e8b85f014fd": "Moderately High",
+        "8f2308c2fd0d5cd7c3f28d92ed0409ef": "High",
+        "023be0fb0cf6ddddee524d7097d9dc22": "Very High",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -58,7 +74,11 @@ def latest_nippon_monthly_url() -> tuple:
 
 
 def _sheet_dials(z: zipfile.ZipFile) -> Dict[str, Optional[str]]:
-    """sheet name -> md5 of the image anchored in the *scheme* dial position (left-most)."""
+    """sheet name -> md5 of the image anchored in the *scheme* dial position.
+
+    AMCs place the pair of dials differently (Nippon: side by side, scheme on the left; DSP:
+    stacked, scheme on top), so we take whichever anchor is topmost-then-leftmost.
+    """
     wbx = z.read("xl/workbook.xml").decode()
     rels = z.read("xl/_rels/workbook.xml.rels").decode()
     sheets = re.findall(r'<sheet [^>]*name="([^"]+)"[^>]*r:id="([^"]+)"', wbx)
@@ -78,15 +98,17 @@ def _sheet_dials(z: zipfile.ZipFile) -> Dict[str, Optional[str]]:
             continue
         for dr in re.findall(r"drawings/(drawing\d+\.xml)", z.read(srels).decode()):
             drx = z.read("xl/drawings/" + dr).decode()
-            anchors = re.findall(r"<xdr:from><xdr:col>(\d+)</xdr:col>.*?</xdr:from>.*?r:embed=\"([^\"]+)\"", drx, re.S)
+            anchors = re.findall(
+                r"<xdr:from><xdr:col>(\d+)</xdr:col><xdr:colOff>\d+</xdr:colOff><xdr:row>(\d+)</xdr:row>.*?r:embed=\"([^\"]+)\"",
+                drx, re.S)
             rr = z.read(f"xl/drawings/_rels/{dr}.rels").decode()
             emb = {}
             for rel in re.findall(r"<Relationship [^>]*>", rr):
                 i, t = re.search(r'Id="([^"]+)"', rel), re.search(r'Target="([^"]+)"', rel)
                 if i and t and "media/" in t.group(1):
                     emb[i.group(1)] = t.group(1).split("media/")[-1]
-            cands = sorted((int(c), emb[r]) for c, r in anchors if r in emb)
-            if cands:  # left-most image = scheme dial, next = benchmark dial
+            cands = sorted(((int(rw), int(c)), emb[r]) for c, rw, r in anchors if r in emb)
+            if cands:  # topmost, then leftmost image = scheme dial
                 out[name] = hashlib.md5(z.read("xl/media/" + cands[0][1])).hexdigest()
     return out
 
@@ -102,20 +124,37 @@ def parse_holdings(ws) -> List[dict]:
     rows = list(ws.iter_rows(values_only=True))
     hdr, col = None, {}
     for i, r in enumerate(rows[:15]):
-        cells = [str(c or "").lower() for c in r]
-        if any("isin" in c for c in cells) and any("name of the instrument" in c for c in cells):
+        cells = [" ".join(str(c or "").lower().split()) for c in r]  # collapse embedded newlines/spaces
+        has_name = any("name of the instrument" in c or "name of instrument" in c for c in cells)
+        if any("isin" in c for c in cells) and has_name:
             hdr = i
             for j, c in enumerate(cells):
-                if "name of the instrument" in c: col["name"] = j
-                elif "isin" in c: col["isin"] = j
+                if "name of" in c and "instrument" in c: col["name"] = j
+                elif c.strip() == "isin" or c.strip().startswith("isin"): col["isin"] = j
                 elif "industry" in c or "rating" in c: col["sector"] = j
-                elif "% to nav" in c: col["pct"] = j
+                elif "% to nav" in c or "% to net asset" in c: col["pct"] = j
             break
     if hdr is None or "pct" not in col or "name" not in col:
         return []
+
+    def hits(shift: int) -> int:
+        c = col.get("isin")
+        if c is None:
+            return 0
+        return sum(1 for r in rows[hdr + 1:hdr + 40]
+                  if c + shift < len(r) and r[c + shift] and ISIN_RE.match(str(r[c + shift]).strip()))
+
+    # Some AMCs omit a leading column (e.g. an internal scrip code) from the header row, so the
+    # header's column indices no longer line up with the data rows. Detect and correct that shift
+    # by finding where the ISIN column actually validates; if none does, the file is unparseable.
+    best_shift = max(range(-1, 2), key=hits) if col.get("isin") is not None else 0
+    if hits(best_shift) < 5:
+        return []
+    col = {k: v + best_shift for k, v in col.items()}
+
     out = []
     for r in rows[hdr + 1:]:
-        isin = r[col["isin"]] if col.get("isin") is not None and col["isin"] < len(r) else None
+        isin = r[col["isin"]] if col["isin"] < len(r) else None
         pct = _num(r[col["pct"]]) if col["pct"] < len(r) else None
         if not (isin and ISIN_RE.match(str(isin).strip())) or pct is None:
             continue
@@ -147,20 +186,18 @@ def parse_workbook(path: str, amc: str = "nippon") -> List[dict]:
     return out
 
 
-def import_nippon(db, path: str = None, as_of: date = None) -> dict:
-    if path is None:
-        as_of, url = latest_nippon_monthly_url()
-        path = f"/tmp/nippon_{as_of:%Y%m}.xlsx"
-        r = httpx.get(url, headers=UA, timeout=300, follow_redirects=True)
-        r.raise_for_status()
-        open(path, "wb").write(r.content)
-    parsed = parse_workbook(path)
+def import_amc(db, amc_key: str, amc_name_like: str, paths: List[str], as_of: date, source_label: str) -> dict:
+    """Shared import path for any fund house: parse each workbook, match by name, load holdings
+    and Riskometer. `paths` may be several files (e.g. one AMC often splits equity/debt/FoF)."""
+    parsed = []
+    for path in paths:
+        parsed += parse_workbook(path, amc_key)
     index = {}
-    for s in db.query(MutualFundScheme).filter(MutualFundScheme.is_active == True, MutualFundScheme.amc_name.ilike("%nippon%")):  # noqa: E712
-        index.setdefault(norm_name(s.scheme_name), []).append(s)
+    for sch in db.query(MutualFundScheme).filter(MutualFundScheme.is_active == True, MutualFundScheme.amc_name.ilike(f"%{amc_name_like}%")):  # noqa: E712
+        index.setdefault(norm_name(sch.scheme_name), []).append(sch)
     stats = {"sheets": len(parsed), "matched": 0, "unmatched": [], "ambiguous": [], "holdings_rejected": [],
              "riskometer_set": 0, "riskometer_unrecognised": 0}
-    src = f"Nippon India MF monthly portfolio {as_of:%b %Y}"
+    src = source_label
     for p in parsed:
         cands = index.get(norm_name(p["scheme"]), [])
         if not cands:
