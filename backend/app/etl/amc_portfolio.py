@@ -9,6 +9,7 @@ degrades to "no official Riskometer", not to a wrong one.
 Adapters: nippon. (HDFC blocks scripted access; SBI/ICICI load files via JavaScript. Not done.)
 """
 import hashlib
+import html
 import logging
 import re
 import zipfile
@@ -124,6 +125,14 @@ DIALS = {
         "cb329fcfedb25e55ce16527cd1bc6636": "Very High",
         "eb217fdb024efb3cacbfab27b7ac7137": "Low to Moderate",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure (quantmutual.com, 29 sheets, 5 distinct dials).
+    "quant": {
+        "5ecfa70da1032387e4301afb6f30d122": "Very High",
+        "7d8365e243b158c33ffdbed5e91addca": "High",
+        "b5b97ed4b7924720b56d663b46476ef6": "Low",
+        "b7641d009ac36217722c83b3116fb07c": "Moderate",
+        "39461309437cd41c8491c20a593071b1": "Low to Moderate",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -156,7 +165,12 @@ def _sheet_dials(z: zipfile.ZipFile) -> Dict[str, Optional[str]]:
     """
     wbx = z.read("xl/workbook.xml").decode()
     rels = z.read("xl/_rels/workbook.xml.rels").decode()
-    sheets = re.findall(r'<sheet [^>]*name="([^"]+)"[^>]*r:id="([^"]+)"', wbx)
+    # unescape: workbook.xml XML-escapes the name attribute (e.g. "qL&amp;MF"), but openpyxl's
+    # wb.sheetnames (what parse_workbook looks callers' sheet names up with) returns it decoded
+    # ("qL&MF") - without this, any sheet name containing &, <, >, ' or " silently loses its
+    # dial lookup to a dict-key mismatch. Found via quant's "qL&MF" sheet.
+    sheets = [(html.unescape(n), rid) for n, rid in
+              re.findall(r'<sheet [^>]*name="([^"]+)"[^>]*r:id="([^"]+)"', wbx)]
     rid2t = {}
     for rel in re.findall(r"<Relationship [^>]*>", rels):
         i, t = re.search(r'Id="([^"]+)"', rel), re.search(r'Target="([^"]+)"', rel)
