@@ -182,6 +182,16 @@ DIALS = {
         "be70b4cf27b346e04d0e0d66727fa0a4": "Low to Moderate",
         "771b7c30714f206c70159c13e5fdccb7": "Low",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure (mahindramanulife.com, 27 sheets, 5
+    # distinct dials). Site publishes several months under GUID-named URLs with no date in the
+    # filename - had to open each and read the embedded "as on" date to find the right one.
+    "mahindra": {
+        "f1cbf5c5592a1100d5e23425bcc4f445": "Very High",
+        "6177730cd6250d73c8f9b9c42a2f1231": "Moderate",
+        "e32fa4a5d39fcfb29c8f51ae3e7e4c0b": "Moderately High",
+        "42c68ddb92ce0a37089834c6ac3010b6": "Low to Moderate",
+        "d914d1cd87b7f6a0cbf7908d3ea28644": "Low",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -387,7 +397,7 @@ _NAME_BOILERPLATE = re.compile(
 def find_scheme_name(ws, max_row: int = 10) -> Optional[str]:
     """Scan the top of a scheme sheet for its name, skipping the boilerplate some AMCs (e.g.
     Motilal Oswal: 'Back to Index', registered-office block) put in the first row(s) instead.
-    Prefers a candidate containing "Fund"/"Plan"/"Scheme"/"ETF" if one exists."""
+    Prefers a candidate containing "Fund"/"Plan"/"Scheme"/"ETF"/"FOF" if one exists."""
     rows = list(ws.iter_rows(min_row=1, max_row=max_row, values_only=True))
     candidates = [str(c).strip() for r in rows for c in r
                  if c and len(str(c).strip()) > 8 and not str(c).strip().startswith("(")
@@ -396,7 +406,12 @@ def find_scheme_name(ws, max_row: int = 10) -> Optional[str]:
         return None
     def is_bare_amc_name(c: str) -> bool:
         return bool(re.match(r"^[A-Za-z. ]+\s+mutual\s+fund$", c.strip(), re.I))
-    fundish = [c for c in candidates if re.search(r"\b(fund|plan|scheme|etf)\b", c, re.I) and not is_bare_amc_name(c)]
+    # "fof" (fund-of-funds) alongside "fund": without it, a genuine FoF scheme name ending
+    # "...REITs FOF" didn't match this preference list, while a LATER row - its one holding, the
+    # underlying fund it invests in, which will almost always literally contain the word "Fund" -
+    # did, and won by being the only "fundish" candidate. Found via Mahindra Manulife Asia
+    # Pacific REITs FOF, whose only holding is "Manulife Global Fund SICAV-Asia Pacific REIT".
+    fundish = [c for c in candidates if re.search(r"\b(fund|fof|plan|scheme|etf)\b", c, re.I) and not is_bare_amc_name(c)]
     return (fundish or [c for c in candidates if not is_bare_amc_name(c)] or candidates)[0]
 
 
