@@ -51,6 +51,17 @@ DIALS = {
         "8f2308c2fd0d5cd7c3f28d92ed0409ef": "High",
         "023be0fb0cf6ddddee524d7097d9dc22": "Very High",
     },
+    # Verified 2026-09-22 against 31-May-2026 disclosure (Axis's site 404s on later months at
+    # this URL pattern; label as_of accordingly). Only "scheme" dials shown here (12 images total,
+    # scheme + benchmark, but only the scheme-side 6 are ever the topmost/scheme-position anchor).
+    "axis": {
+        "1416ceaaa7fe55839f591227757e6f74": "High",
+        "204f02844f9aa74f38662a97b503f0ad": "Moderately High",
+        "4da90b93dd57fcfee1b16fbe3e7c22f6": "Moderate",
+        "9f763a4fc076cf78de67cd0c6ce991a7": "Low",
+        "afd7231f2ac3db5033890bc27afe1e8c": "Low to Moderate",
+        "ed553eccc425c96b178ad329be8568c0": "Very High",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
