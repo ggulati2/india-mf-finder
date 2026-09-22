@@ -73,6 +73,31 @@ DIALS = {
         "24704776335646f8afff4b0a37131ca5": "High",
         "9865a9ce8e1f7956f554467c018fca24": "Very High",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure. Kotak re-renders the dial slightly
+    # differently per scheme (font/needle antialiasing varies), so this is a wider table (18
+    # entries for 6 levels) than Nippon/DSP/Axis, but every entry was viewed and none are guessed;
+    # one further image (labelled "Benchmark Risk-o-meter") was excluded on purpose since it is
+    # never the scheme's own level.
+    "kotak": {
+        "53d49cc6da0cdeb60160d919cb1fa15c": "Moderate",
+        "4ba87e697bec493c9e894ef4f6190020": "Very High",
+        "f8480a9bebafcda7708fe266353969e5": "Low",
+        "48cdfbeb7dfe24b3e46239ee32c9529e": "High",
+        "6974805f032dfee00f4614e8af8567f6": "Moderate",
+        "97119823c663f19e5b809e0015efa3e9": "Moderate",
+        "595ab3281958b7f5ef05d3dd91edec2e": "Moderate",
+        "638ae36ba2fe191d69df002c1cfdbcdc": "Moderately High",
+        "85f48f872425ee9136cbeb173eedf58e": "Low to Moderate",
+        "3cb77ffdf66b971b1c230e536aa39554": "Moderately High",
+        "ac96b6eacb3bd64dbcb47597144074a7": "Moderate",
+        "f0d34ff96d2a1ad7409dc8a6bb270347": "Moderate",
+        "e132e6b4964eec8c145eec576366dad8": "Moderate",
+        "fd6e3df182571dd17f2537818035c5eb": "Moderately High",
+        "a7a26ad96362537c858670f1f2b0618b": "Moderate",
+        "f296081a2de8c09c24ca3b6e2c8370f1": "Low",
+        "6aab55339cad38318a1e3594b65f600f": "Low to Moderate",
+        "28f5cdad699881ef412c088548a4994d": "Moderate",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -161,20 +186,36 @@ def parse_holdings(ws) -> List[dict]:
     if hdr is None or "pct" not in col or "name" not in col:
         return []
 
-    def hits(shift: int) -> int:
-        c = col.get("isin")
-        if c is None:
+    sample = rows[hdr + 1:hdr + 40]
+    isin_base, name_base = col.get("isin"), col.get("name")
+
+    def hits_at(base: Optional[int], shift: int, ok) -> int:
+        if base is None:
             return 0
-        return sum(1 for r in rows[hdr + 1:hdr + 40]
-                  if c + shift < len(r) and r[c + shift] and ISIN_RE.match(str(r[c + shift]).strip()))
+        c = base + shift
+        return sum(1 for r in sample if 0 <= c < len(r) and ok(r[c]))
+
+    def is_isin(v) -> bool:
+        return bool(v) and bool(ISIN_RE.match(str(v).strip()))
+
+    def looks_like_name(v) -> bool:
+        s = str(v or "").strip()
+        return len(s) > 3 and any(ch.isalpha() for ch in s) and not ISIN_RE.match(s)
 
     # Some AMCs omit a leading column (e.g. an internal scrip code) from the header row, so the
     # header's column indices no longer line up with the data rows. Detect and correct that shift
     # by finding where the ISIN column actually validates; if none does, the file is unparseable.
-    best_shift = max(range(-1, 2), key=hits) if col.get("isin") is not None else 0
-    if hits(best_shift) < 5:
+    best_shift = max(range(-2, 3), key=lambda sh: hits_at(isin_base, sh, is_isin))
+    if hits_at(isin_base, best_shift, is_isin) < 5:
         return []
+    # A merged/spanning header cell (e.g. "Name of Instrument" merged across several blank
+    # columns) can throw the name column off by a different amount than ISIN, so it is aligned
+    # independently rather than assumed to share ISIN's shift.
+    best_name_shift = max(range(-3, 4), key=lambda sh: hits_at(name_base, sh, looks_like_name))
+    if hits_at(name_base, best_name_shift, looks_like_name) <= hits_at(name_base, best_shift, looks_like_name):
+        best_name_shift = best_shift
     col = {k: v + best_shift for k, v in col.items()}
+    col["name"] = name_base + best_name_shift
 
     raw = []
     for r in rows[hdr + 1:]:
@@ -213,11 +254,20 @@ def parse_workbook(path: str, amc: str = "nippon") -> List[dict]:
         if not name:
             continue
         h = dials.get(sn)
-        out.append({"sheet": sn, "scheme": re.split(r"\s+\(", name.strip(), 1)[0],
+        out.append({"sheet": sn, "scheme": clean_scheme_name(name),
                     "holdings": parse_holdings(ws),
                     "riskometer": table.get(h) if h else None,
                     "riskometer_unrecognised": bool(h) and h not in table})
     return out
+
+
+def clean_scheme_name(name: str) -> str:
+    """Strip the wrapper text some AMCs (e.g. Kotak: "Portfolio of X as on 31-Aug-2026") put
+    around the bare scheme name, and the usual trailing description in parentheses."""
+    n = name.strip()
+    n = re.sub(r"^portfolio\s+of\s+", "", n, flags=re.I)
+    n = re.sub(r"\s+as\s+on\s+.*$", "", n, flags=re.I)
+    return re.split(r"\s+\(", n, 1)[0].strip()
 
 
 # --- Baroda BNP Paribas: risk level + caption are baked into ONE image per scheme (not a small
