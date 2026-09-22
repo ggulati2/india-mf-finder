@@ -89,8 +89,8 @@ export default function Dashboard() {
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 md:py-10 flex items-center justify-between gap-4 sm:gap-6 flex-wrap">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-indigo-200 dark:shadow-none">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-slate-900 dark:bg-white flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white dark:text-slate-900" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
@@ -99,8 +99,8 @@ export default function Dashboard() {
               <p className="hidden sm:block text-sm text-slate-500 dark:text-slate-400 mt-0.5">Objective, data-driven fund recommendations from official AMFI data</p>
             </div>
           </div>
-          <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 rounded-full px-3 py-1.5">
-            <svg className="w-3.5 h-3.5" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-1.5">
+            <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             Built on official AMFI data
           </span>
         </div>
@@ -134,8 +134,8 @@ export default function Dashboard() {
         {/* Investment Parameters — lean landing, only applicable funds after Find */}
         <section className="card p-6">
           <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+            <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
             </div>
             <h3 className="font-bold text-slate-800 dark:text-slate-100">Tell us about your investment</h3>
             <span className="hidden sm:inline text-xs text-slate-400 ml-2">We’ll show only funds that match</span>
@@ -171,7 +171,7 @@ export default function Dashboard() {
               </select>
             </div>
             <div className="flex items-end">
-              <button onClick={fetchFunds} className="w-full rounded-lg bg-indigo-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-indigo-700 transition-colors">Find Funds →</button>
+              <button onClick={fetchFunds} className="btn-primary w-full px-4 py-2.5 text-sm">Find Funds →</button>
             </div>
           </div>
           <p className="text-xs text-slate-400 mt-3">No funds are loaded until you click Find Funds — faster landing, only applicable funds shown. Uses Direct Growth, OCS with SIP/Lump adjustments.</p>
@@ -181,8 +181,8 @@ export default function Dashboard() {
         {hasSearched && (
         <section className="card p-5">
           <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <div className="w-8 h-8 bg-amber-50 dark:bg-amber-950/40 rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
+            <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-slate-600 dark:text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
             </div>
             <h3 className="font-bold text-slate-800 dark:text-slate-100">Sort & Filter</h3>
             <span className="text-xs text-slate-400">{filteredFunds.length} of {funds.length} shown</span>
@@ -237,8 +237,8 @@ export default function Dashboard() {
 
         {!hasSearched && (
           <div className="card p-12 text-center">
-            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
             <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">Ready to find your best funds?</h3>
             <p className="text-slate-500">Choose amount, horizon, risk and category above, then click <span className="font-semibold text-indigo-600">Find Funds</span>.</p>
@@ -366,7 +366,7 @@ export default function Dashboard() {
       <footer className="border-t border-slate-200 dark:border-slate-800 mt-12">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 text-sm text-slate-500">
           <p>© 2024 India Mutual Fund Finder</p>
-          <p>AI-Powered Analytics Engine</p>
+          <p>Data-driven fund analytics</p>
         </div>
         <p className="max-w-[1600px] mx-auto px-4 sm:px-6 pb-6 text-xs text-slate-400">
           Information only, not investment advice. Returns are computed from official AMFI NAVs of funds that exist today, so they exclude funds that were closed or merged (survivorship bias) and reflect past market conditions; they are not a forecast. Risk levels are our estimate from past volatility, not the SEBI Riskometer published by each fund house. Expense ratios come from the AMFI disclosure where a match was found. Read the scheme documents and consider a SEBI-registered adviser before investing.
