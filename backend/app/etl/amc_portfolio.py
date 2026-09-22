@@ -15,6 +15,8 @@ import zipfile
 from datetime import date, datetime
 from typing import Dict, List, Optional
 
+LEVELS = ("Low", "Low to Moderate", "Moderate", "Moderately High", "High", "Very High")
+
 import httpx
 import openpyxl
 
@@ -279,6 +281,34 @@ def parse_single_scheme_workbook(path: str, scheme_risk: Dict[str, str]) -> List
     level = next((v for k, v in scheme_risk.items() if k.lower() == scheme.lower()), None)
     return [{"sheet": wb.sheetnames[0], "scheme": scheme, "holdings": parse_holdings(ws),
             "riskometer": level, "riskometer_unrecognised": level is None}]
+
+
+
+# --- Tata: unlike every AMC so far, publishes ALL schemes' Riskometer levels as plain text in a
+# single dedicated sheet ("Tata Scheme Risk-o-Meter") -- no image parsing needed at all, and this
+# self-updates every month automatically (unlike Baroda/Helios's baked-in-image snapshots).
+def parse_tata_workbook(path: str) -> List[dict]:
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    risk_sheet = next((n for n in wb.sheetnames if "risk-o-meter" in n.lower() and "benchmark" not in n.lower() and "debt" not in n.lower()), None)
+    levels = {}
+    if risk_sheet:
+        for r in wb[risk_sheet].iter_rows(values_only=True):
+            if len(r) > 2 and r[1] and r[2] and str(r[2]).strip() in LEVELS:
+                levels[str(r[1]).strip().lower()] = str(r[2]).strip()
+    out = []
+    for sn in wb.sheetnames:
+        if "risk-o-meter" in sn.lower() or sn.lower() in ("index", "debt replication index", "dividend history"):
+            continue
+        ws = wb[sn]
+        first = next(ws.iter_rows(min_row=1, max_row=6, values_only=True), ())
+        name = next((str(c) for row in [first] for c in row if c and len(str(c)) > 8 and "tata" in str(c).lower()), None)
+        if not name:
+            continue
+        scheme = re.split(r"\s+\(", name.strip(), 1)[0]
+        level = levels.get(scheme.lower())
+        out.append({"sheet": sn, "scheme": scheme, "holdings": parse_holdings(ws),
+                    "riskometer": level, "riskometer_unrecognised": level is None})
+    return out
 
 
 def import_amc(db, amc_key: str, amc_name_like: str, paths: List[str], as_of: date, source_label: str) -> dict:

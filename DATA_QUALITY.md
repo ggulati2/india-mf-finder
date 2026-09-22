@@ -10,7 +10,7 @@ official source or clearly labelled as an estimate. Unknown is shown as "n/a", n
 | Expense ratio (TER) | AMFI TER API (`/api/populate-te-rdata-revised`, one Excel per fund house), latest daily row | 1,441 of 1,481 active schemes (97%). Matched by normalised name; no match = "n/a", no fuzzy guessing. Falls back to captn3m0's CSV, which lags AMFI (e.g. Axis Small Cap: CSV 0.54% vs AMFI 0.71% on 18 Sep 2026) |
 | Benchmark (beta, capture) | Nifty 50 price index, Yahoo Finance | Excludes dividends; cached daily in `backend/data/` |
 | Risk level | Official SEBI Riskometer where imported, else a conservative estimate | See below. Every fund shows which one it is |
-| Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India (107), DSP (62), Baroda BNP Paribas (41), Helios (8) — 4 fund houses, 218 schemes. Others show "not imported yet". Earlier versions showed synthetic data |
+| Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India (107), DSP (62), Baroda BNP Paribas (41), Helios (8), Tata (60) — 5 fund houses, 278 schemes. Others show "not imported yet". Earlier versions showed synthetic data |
 
 ## Validation applied to every NAV series (`app/engine/quality.py`)
 - Zero/negative NAVs and isolated one-day spikes that reverse next day are dropped (`repaired_points`).
@@ -44,6 +44,10 @@ baked-in composite image as Baroda; `HELIOS_RISK_AUG2026` records its 8 schemes,
 `parse_holdings` also had to learn that not every AMC stores weight as a fraction of NAV — Helios
 stores the percentage directly (2.32, not 0.0232) — so it now picks whichever scaling makes the
 portfolio total land near 100%, rather than assuming one convention.
+
+Tata is the easiest AMC found so far: it publishes a single sheet ("Tata Scheme Risk-o-Meter")
+listing every scheme's official level as plain text, so no image parsing or manual re-reading is
+needed at all — it self-updates every month like Nippon/DSP's hash tables do, just via text instead.
 
 Every other AMC is undone. LIC's disclosure link on its own downloads page 404s (stale page cache
 at LIC's end, not ours). Sundaram, Quantum, Choice had no plain file link in the fetched page (need
