@@ -102,3 +102,25 @@ Probe result: 18 expose plain file links, 23 load them via JavaScript, 12 blocke
 
 ## Rebuilding
 `scripts/overnight.sh` (from `backend/`): master data + TER, NAV history for every fund house, validated analytics, then `verify_data.py`. About 22 minutes. Run 2026-09-22: 1,481 active schemes, 1,407 clean, 31 with an old break (shorter horizons only), 40 too new, 3 blocked for a recent break.
+
+## Ongoing data sanitation checks
+Two scripts should be run regularly (after every import/rebuild, and periodically otherwise —
+not just when adding a new AMC), both from `backend/`:
+- `scripts/verify_data.py` — reconciles our stored NAV history against AMFI's own single-day
+  report, independent of the mfapi.in/AMFI bulk source our history was built from. Exits 1 if
+  more than 0.5% of comparable NAVs disagree.
+- `scripts/data_health_check.py` — sweeps everything else: Riskometer values are one of the 6
+  official SEBI levels and not stale (>45 days), holdings weights are sane and each scheme's
+  holdings total lands in [30,105]%, no orphaned/duplicate rows that would corrupt a total, scheme
+  identity fields (amfi_code/isin/name) are unique and non-blank, and NAV/holdings staleness is
+  flagged. It deliberately does NOT fail on legitimate AMC disclosure quirks it had to be taught to
+  recognise on first run: multi-asset/hybrid funds publish small **negative** weights for short
+  derivative/hedge legs (e.g. "ICICI BANK LTD^" at -0.49%), and the same ISIN can legitimately
+  appear as several distinct lines (cash equity + derivative leg, or multiple futures expiries in
+  an arbitrage fund) — sometimes with an identical weight by coincidence. These are reported as
+  informational notes, not failures; only a genuinely out-of-band value or a per-scheme total
+  outside [30,105]% fails the run.
+  Run 2026-09-22 (11 AMCs, 620 schemes with holdings): all checks passed. Notes: Axis's holdings
+  are from its "May 2026 (latest available)" file — 3+ months older than every other AMC's Aug 2026
+  file, worth re-checking whether Axis has since published Aug/Sep; 3 newly-launched target-maturity
+  index funds hadn't had a NAV update in 10+ days (thin/new, not a pipeline issue).
