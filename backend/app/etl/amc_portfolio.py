@@ -456,6 +456,16 @@ BARODA_RISK_AUG2026 = {
     "YR56": "Very High",
 }
 
+# Trust Mutual Fund: like Baroda, each sheet's dial+caption is baked into ONE unique image
+# (11 sheets, 11 distinct hashes, no reuse) - read by eye against the 31-Aug-2026 disclosure.
+# Must be re-verified by hand for later months, not reused blindly.
+TRUST_RISK_AUG2026 = {
+    "TMFLIQ": "Low to Moderate", "TMFST": "Low to Moderate", "TMFOF": "Low",
+    "TMFMM": "Low to Moderate", "TMFCB": "Low to Moderate", "TMFFLEXI": "Very High",
+    "TMFSCAP": "Very High", "TMFMCAP": "Very High", "TMFARB": "Low", "TMFMID": "Very High",
+    "TMFLRMCF": "Very High",
+}
+
 
 def parse_workbook_manual_risk(path: str, sheet_risk: Dict[str, str]) -> List[dict]:
     """Like parse_workbook, but the Riskometer level comes from a hand-verified {sheet: level}
@@ -577,6 +587,20 @@ def import_amc(db, amc_key: str, amc_name_like: str, paths: List[str], as_of: da
     parsed = []
     for path in paths:
         parsed += parse_workbook(path, amc_key)
+    return _import_parsed(db, amc_name_like, parsed, as_of, source_label)
+
+
+def import_amc_manual_risk(db, amc_name_like: str, paths: List[str], sheet_risk: Dict[str, str],
+                            as_of: date, source_label: str) -> dict:
+    """Like import_amc, for a baked-caption AMC (e.g. Baroda, Trust) parsed with
+    parse_workbook_manual_risk instead of the image-hash table."""
+    parsed = []
+    for path in paths:
+        parsed += parse_workbook_manual_risk(path, sheet_risk)
+    return _import_parsed(db, amc_name_like, parsed, as_of, source_label)
+
+
+def _import_parsed(db, amc_name_like: str, parsed: List[dict], as_of: date, source_label: str) -> dict:
     index = {}
     for sch in db.query(MutualFundScheme).filter(MutualFundScheme.is_active == True, MutualFundScheme.amc_name.ilike(f"%{amc_name_like}%")):  # noqa: E712
         index.setdefault(norm_name(sch.scheme_name), []).append(sch)
