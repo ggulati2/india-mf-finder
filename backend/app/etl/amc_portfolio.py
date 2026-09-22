@@ -62,6 +62,17 @@ DIALS = {
         "afd7231f2ac3db5033890bc27afe1e8c": "Low to Moderate",
         "ed553eccc425c96b178ad329be8568c0": "Very High",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure. ICICI's dial (unlike Baroda/Helios)
+    # carries only the level text, not the scheme name, so it IS a small reusable set (only 8
+    # distinct images across all 147 scheme files, matching one-file-per-scheme like Helios).
+    "icici": {
+        "7eeff85e51e769a4ab604b704cc5b3f9": "Low",
+        "99a0492738a753a28f6fcfd46c270495": "Low to Moderate",
+        "66c0cadfc48747ae4bac27983bc46123": "Moderate",
+        "08f133c1f1b22b80900962bc6f8fbf6f": "Moderately High",
+        "24704776335646f8afff4b0a37131ca5": "High",
+        "9865a9ce8e1f7956f554467c018fca24": "Very High",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -138,11 +149,11 @@ def parse_holdings(ws) -> List[dict]:
     hdr, col = None, {}
     for i, r in enumerate(rows[:15]):
         cells = [" ".join(str(c or "").lower().split()) for c in r]  # collapse embedded newlines/spaces
-        has_name = any("name of the instrument" in c or "name of instrument" in c for c in cells)
+        has_name = any("name of the instrument" in c or "name of instrument" in c or "instrument name" in c for c in cells)
         if any("isin" in c for c in cells) and has_name:
             hdr = i
             for j, c in enumerate(cells):
-                if "name of" in c and "instrument" in c: col["name"] = j
+                if ("name of" in c and "instrument" in c) or "instrument name" in c: col["name"] = j
                 elif c.strip() == "isin" or c.strip().startswith("isin"): col["isin"] = j
                 elif "industry" in c or "rating" in c: col["sector"] = j
                 elif "% to nav" in c or "% to net asset" in c or "% to aum" in c: col["pct"] = j
@@ -320,6 +331,30 @@ def parse_tata_workbook(path: str) -> List[dict]:
         out.append({"sheet": sn, "scheme": scheme, "holdings": parse_holdings(ws),
                     "riskometer": level, "riskometer_unrecognised": level is None})
     return out
+
+
+
+def parse_single_scheme_workbook_hashed(path: str, amc: str) -> List[dict]:
+    """Like parse_single_scheme_workbook, but the Riskometer comes from the DIALS hash table
+    (for AMCs like ICICI that publish one file per scheme, but whose dial image carries only the
+    level text, not the scheme name, so a small reusable hash set works)."""
+    import zipfile as _zip
+    z = _zip.ZipFile(path)
+    dials = _sheet_dials(z)
+    table = DIALS[amc]
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    rows = list(ws.iter_rows(min_row=1, max_row=6, values_only=True))
+    # ICICI's layout is fixed: row 0 = AMC name, row 1 = scheme name, row 2 = "Portfolio as on ..."
+    candidates = [str(c) for r in rows for c in r if c and len(str(c)) > 8]
+    name = next((c for c in candidates if c.strip().lower() != "icici prudential mutual fund"
+                and not c.lower().startswith("portfolio as")), None)
+    if not name:
+        return []
+    scheme = re.split(r"\s+\(", name.strip(), 1)[0]
+    h = dials.get(wb.sheetnames[0])
+    return [{"sheet": wb.sheetnames[0], "scheme": scheme, "holdings": parse_holdings(ws),
+            "riskometer": table.get(h) if h else None, "riskometer_unrecognised": bool(h) and h not in table}]
 
 
 def import_amc(db, amc_key: str, amc_name_like: str, paths: List[str], as_of: date, source_label: str) -> dict:

@@ -10,7 +10,7 @@ official source or clearly labelled as an estimate. Unknown is shown as "n/a", n
 | Expense ratio (TER) | AMFI TER API (`/api/populate-te-rdata-revised`, one Excel per fund house), latest daily row | 1,441 of 1,481 active schemes (97%). Matched by normalised name; no match = "n/a", no fuzzy guessing. Falls back to captn3m0's CSV, which lags AMFI (e.g. Axis Small Cap: CSV 0.54% vs AMFI 0.71% on 18 Sep 2026) |
 | Benchmark (beta, capture) | Nifty 50 price index, Yahoo Finance | Excludes dividends; cached daily in `backend/data/` |
 | Risk level | Official SEBI Riskometer where imported, else a conservative estimate | See below. Every fund shows which one it is |
-| Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India (107), DSP (62), Baroda BNP Paribas (41), Helios (8), Tata (60), Axis (64) — 6 fund houses, 342 schemes. Others show "not imported yet". Earlier versions showed synthetic data |
+| Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India (107), DSP (62), Baroda BNP Paribas (41), Helios (8), Tata (60), Axis (64), ICICI Prudential (96) — 7 fund houses, 438 schemes. Others show "not imported yet". Earlier versions showed synthetic data |
 
 ## Validation applied to every NAV series (`app/engine/quality.py`)
 - Zero/negative NAVs and isolated one-day spikes that reverse next day are dropped (`repaired_points`).
@@ -53,6 +53,11 @@ Axis uses a small reusable dial set like Nippon/DSP (6 hashes verified), but its
 the URL pattern for June-August 2026 — the newest file that pattern resolves is 31-May-2026, so
 Axis's risk levels and holdings are dated May 2026, four months old at time of import, not August
 like the others. This is disclosed via `riskometer_source`/`riskometer_as_of` per scheme.
+
+ICICI Prudential publishes one file per scheme (like Helios) but its dial image carries only the
+level text, not the scheme name, so it IS a small reusable set (8 distinct images across 147
+scheme files) despite the one-file-per-scheme layout. Found via advisorkhoj.com mirroring
+icicipruamc.com's own blob storage; both August 2026 file and current live page agree.
 
 Every other AMC is undone. LIC's disclosure link on its own downloads page 404s (stale page cache
 at LIC's end, not ours). Sundaram, Quantum, Choice had no plain file link in the fetched page (need
