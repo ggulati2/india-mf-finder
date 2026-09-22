@@ -98,6 +98,15 @@ DIALS = {
         "6aab55339cad38318a1e3594b65f600f": "Low to Moderate",
         "28f5cdad699881ef412c088548a4994d": "Moderate",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure.
+    "franklin": {
+        "28dcf6a2149859802f2f2fc1c14c0eaa": "Very High",
+        "66b2f5475ab9a8adde6614cd38175ab6": "Low to Moderate",
+        "7f1d0977728fb25b56e58db5e0ce626a": "Low",
+        "9a35f63e58a4ee8aa6a7dfc88a0b9a27": "High",
+        "bce797fb4104cc60590b59bcb4cd447f": "Moderately High",
+        "f7a7f23a4ea53a803718a27ea5bd654c": "Moderate",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -177,11 +186,15 @@ def parse_holdings(ws) -> List[dict]:
         has_name = any("name of the instrument" in c or "name of instrument" in c or "instrument name" in c for c in cells)
         if any("isin" in c for c in cells) and has_name:
             hdr = i
+            # first match wins for each field: some AMCs have a second, unrelated column whose
+            # long header text happens to also contain a field's keyword (e.g. Franklin's
+            # "Outstanding derivative exposure AS % TO NET ASSETS Long/(Short)" alongside the
+            # real "% to Net Assets" column) - the real column is always the earliest one.
             for j, c in enumerate(cells):
-                if ("name of" in c and "instrument" in c) or "instrument name" in c: col["name"] = j
-                elif c.strip() == "isin" or c.strip().startswith("isin"): col["isin"] = j
-                elif "industry" in c or "rating" in c: col["sector"] = j
-                elif "% to nav" in c or "% to net asset" in c or "% to aum" in c: col["pct"] = j
+                if "name" not in col and (("name of" in c and "instrument" in c) or "instrument name" in c): col["name"] = j
+                elif "isin" not in col and (c.strip() == "isin" or c.strip().startswith("isin")): col["isin"] = j
+                elif "sector" not in col and ("industry" in c or "rating" in c): col["sector"] = j
+                elif "pct" not in col and ("% to nav" in c or "% to net asset" in c or "% to aum" in c): col["pct"] = j
             break
     if hdr is None or "pct" not in col or "name" not in col:
         return []
@@ -250,7 +263,7 @@ def parse_workbook(path: str, amc: str = "nippon") -> List[dict]:
             continue
         ws = wb[sn]
         first = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), ())
-        name = next((str(c) for c in first[1:3] if c and len(str(c)) > 8), None)
+        name = next((str(c) for c in first[0:3] if c and len(str(c)) > 8), None)
         if not name:
             continue
         h = dials.get(sn)
@@ -303,7 +316,7 @@ def parse_workbook_manual_risk(path: str, sheet_risk: Dict[str, str]) -> List[di
             continue
         ws = wb[sn]
         first = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), ())
-        name = next((str(c) for c in first[1:3] if c and len(str(c)) > 8), None)
+        name = next((str(c) for c in first[0:3] if c and len(str(c)) > 8), None)
         if not name:
             continue
         level = sheet_risk.get(sn)
