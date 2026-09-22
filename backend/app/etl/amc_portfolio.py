@@ -133,6 +133,17 @@ DIALS = {
         "b7641d009ac36217722c83b3116fb07c": "Moderate",
         "39461309437cd41c8491c20a593071b1": "Low to Moderate",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure (sundarammutual.com, 2 files - equity
+    # (31 sheets) + debt (11 sheets) - 6 distinct dials; "Moderate" has two slightly different
+    # renderings (equity-file vs debt-file template) that both read "Moderate" by eye.
+    "sundaram": {
+        "7b6d53e9a04ee038a0677f8829393714": "Very High",
+        "7e571a2b95d57e185984c8e3a944e260": "High",
+        "edd39b5c614e5d7e7a76e9e996d22b9f": "Moderate",
+        "8fb011ca140bfb8a65b8c459a6ac1dc1": "Low",
+        "aa0e74faa8dcbeedfde29451dd58c323": "Low to Moderate",
+        "4f9e23311fcaba12998b4f55362001f5": "Moderate",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -225,7 +236,8 @@ def parse_holdings(ws) -> List[dict]:
                 if "name" not in col and (("name of" in c and "instrument" in c) or "instrument name" in c): col["name"] = j
                 elif "isin" not in col and (c.strip() == "isin" or c.strip().startswith("isin")): col["isin"] = j
                 elif "sector" not in col and ("industry" in c or "rating" in c): col["sector"] = j
-                elif "pct" not in col and ("% to nav" in c or "% to net asset" in c or "% to aum" in c): col["pct"] = j
+                elif "pct" not in col and ("% to nav" in c or "% to net asset" in c or "% to aum" in c
+                                           or "% of net asset" in c or "% of nav" in c or "% of aum" in c): col["pct"] = j
             break
     if hdr is None or "pct" not in col or "name" not in col:
         return []
@@ -263,6 +275,16 @@ def parse_holdings(ws) -> List[dict]:
 
     raw = []
     for r in rows[hdr + 1:]:
+        # Stop at "Grand Total"/"Total Portfolio": some AMCs (e.g. Sundaram) append an unrelated
+        # footnote table below it - a legacy defaulted-paper recovery accounting note, with its
+        # own mini header ("NAME OF THE SECURITY", "Total CP Outstanding", ...) that happens to
+        # put a numeric value in the same column position as "% to NAV". Scanning past the real
+        # total picked that up as a holding (once even corrupting the whole sheet's scale
+        # detection, since its huge raw value alone looked plausible as an already-scaled total).
+        # A real portfolio's holdings always precede its own Grand Total line, so stopping there
+        # is safe for every AMC, not just Sundaram, whether or not they have trailing footnotes.
+        if any(str(c or "").strip().lower() in ("grand total", "total portfolio") for c in r):
+            break
         isin = r[col["isin"]] if col["isin"] < len(r) else None
         pct = _num(r[col["pct"]]) if col["pct"] < len(r) else None
         if not (isin and ISIN_RE.match(str(isin).strip())) or pct is None:
@@ -277,9 +299,19 @@ def parse_holdings(ws) -> List[dict]:
     scale = 1 if 30 <= total_raw <= 105 else 100
     out = []
     for isin, r, pct in raw:
+        weight = pct * scale
+        # A single holding can never legitimately exceed the whole portfolio's own sanity bound
+        # (105% of NAV) - if it does, this row isn't really a holding line. Found via Sundaram's
+        # arbitrage-fund sheets, which append an unrelated recovery-accounting footnote table
+        # below the real holdings (for a legacy defaulted CP) that happens to have a valid-
+        # looking ISIN and a numeric value in the same column position, producing a nonsense
+        # 212%-of-NAV "holding". This bound can't reject a genuine holding (one position's
+        # weight is always <= the portfolio total, which is itself capped at 105%).
+        if abs(weight) > 105:
+            continue
         out.append({"isin": str(isin).strip(), "name": str(r[col["name"]]).strip()[:255],
                     "sector": (str(r[col["sector"]]).strip()[:120] if col.get("sector") is not None and col["sector"] < len(r) and r[col["sector"]] else None),
-                    "weight_pct": pct * scale})
+                    "weight_pct": weight})
     return out
 
 

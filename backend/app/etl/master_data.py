@@ -105,10 +105,17 @@ def fetch_navall() -> str:
 
 
 _STRIP = re.compile(r"\(.*?\)|\b(direct|regular|plan|growth|option|idcw|fund|scheme|the)\b|[^a-z0-9 ]")
+# AMCs are inconsistent about whether a cap-size term is one word or two (a scheme's own monthly
+# disclosure sheet vs its official AMFI-registered name): "Mid Cap Fund" vs "Midcap Fund", "Flexi
+# Cap" vs "Flexicap", etc. Collapse both sides to the same one-word form so matching isn't
+# sensitive to it. Found via Sundaram: "Large and Mid Cap Fund" (disclosure) vs "Large and Midcap
+# Fund" (AMFI) and "Flexi Cap Fund" vs "Flexicap Fund" both failed to match without this.
+_CAP_SPACE = re.compile(r"\b(mid|small|large|multi|flexi)\s+cap\b")
 
 
 def norm_name(name: str) -> str:
-    return " ".join(_STRIP.sub(" ", name.lower().replace("&", " and ")).split())
+    s = _CAP_SPACE.sub(r"\1cap", name.lower().replace("&", " and "))
+    return " ".join(_STRIP.sub(" ", s).split())
 
 
 def load_ter() -> dict:
