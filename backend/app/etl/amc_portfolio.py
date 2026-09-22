@@ -186,6 +186,49 @@ def parse_workbook(path: str, amc: str = "nippon") -> List[dict]:
     return out
 
 
+# --- Baroda BNP Paribas: risk level + caption are baked into ONE image per scheme (not a small
+# reusable set like Nippon/DSP), so there is no hash table to build. Each month's file needs this
+# mapping re-read by eye from the images `_sheet_dials` finds (the topmost, largest .jpg per
+# sheet). This snapshot was verified 2026-09-22 against the 31-Aug-2026 disclosure; it must be
+# refreshed by hand for later months rather than reused blindly.
+BARODA_RISK_AUG2026 = {
+    "T0MD09": "Low to Moderate", "T0MD12": "Moderate", "T0MD13": "Low to Moderate",
+    "T0MD28": "Low to Moderate", "T0ME02": "Very High", "T0ME04": "Very High",
+    "T0ME05": "Very High", "T0ME08": "Moderately High", "T0ME18": "Low", "T0ME19": "Very High",
+    "T0ME20": "Very High", "T0ME21": "Very High", "T0ME24": "Very High", "T0ME25": "Very High",
+    "T0ME26": "Very High", "T0ME30": "Very High", "T0ME31": "High", "T0ME32": "Very High",
+    "T0ME33": "Very High", "T0ME34": "Very High", "T0ME35": "Very High", "T0ME36": "Very High",
+    "T0ME37": "Very High", "T0ME38": "Very High", "T0ME39": "Very High", "T0ME40": "Very High",
+    "T0ME41": "Very High", "T0ME42": "Very High", "T0ME43": "Low to Moderate", "T0ME44": "High",
+    "T0ME45": "Very High", "T0ME46": "High", "T0ME47": "Very High", "T0ME48": "Very High",
+    "T0ME49": "Very High", "YR04": "Moderate", "YR07": "Low to Moderate", "YR11": "Very High",
+    "YR15": "Very High", "YR29": "Low", "YR47": "Low to Moderate", "YR48": "Very High",
+    "YR51": "Low", "YR52": "Low to Moderate", "YR53": "Moderately High", "YR54": "Very High",
+    "YR56": "Very High",
+}
+
+
+def parse_workbook_manual_risk(path: str, sheet_risk: Dict[str, str]) -> List[dict]:
+    """Like parse_workbook, but the Riskometer level comes from a hand-verified {sheet: level}
+    map rather than an image hash table (for AMCs whose disclosure bakes captions into a
+    per-scheme image, so there is no small reusable set of dial images to hash-match)."""
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    out = []
+    for sn in wb.sheetnames:
+        if sn.lower() == "index":
+            continue
+        ws = wb[sn]
+        first = next(ws.iter_rows(min_row=1, max_row=1, values_only=True), ())
+        name = next((str(c) for c in first[1:3] if c and len(str(c)) > 8), None)
+        if not name:
+            continue
+        level = sheet_risk.get(sn)
+        out.append({"sheet": sn, "scheme": re.split(r"\s+\(", name.strip(), 1)[0],
+                    "holdings": parse_holdings(ws),
+                    "riskometer": level, "riskometer_unrecognised": level is None})
+    return out
+
+
 def import_amc(db, amc_key: str, amc_name_like: str, paths: List[str], as_of: date, source_label: str) -> dict:
     """Shared import path for any fund house: parse each workbook, match by name, load holdings
     and Riskometer. `paths` may be several files (e.g. one AMC often splits equity/debt/FoF)."""

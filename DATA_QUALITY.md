@@ -10,7 +10,7 @@ official source or clearly labelled as an estimate. Unknown is shown as "n/a", n
 | Expense ratio (TER) | AMFI TER API (`/api/populate-te-rdata-revised`, one Excel per fund house), latest daily row | 1,441 of 1,481 active schemes (97%). Matched by normalised name; no match = "n/a", no fuzzy guessing. Falls back to captn3m0's CSV, which lags AMFI (e.g. Axis Small Cap: CSV 0.54% vs AMFI 0.71% on 18 Sep 2026) |
 | Benchmark (beta, capture) | Nifty 50 price index, Yahoo Finance | Excludes dividends; cached daily in `backend/data/` |
 | Risk level | Official SEBI Riskometer where imported, else a conservative estimate | See below. Every fund shows which one it is |
-| Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India (107 schemes) and DSP (62 schemes, 61 with an official level). Others show "not imported yet". Earlier versions showed synthetic data |
+| Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India (107), DSP (62), Baroda BNP Paribas (41) — 3 fund houses, 210 schemes. Others show "not imported yet". Earlier versions showed synthetic data |
 
 ## Validation applied to every NAV series (`app/engine/quality.py`)
 - Zero/negative NAVs and isolated one-day spikes that reverse next day are dropped (`repaired_points`).
@@ -34,11 +34,11 @@ Sharpe/Sortino are return per unit of risk and must never be used as the risk la
 One sheet per scheme. Weights are validated: a portfolio is accepted only if its ISIN-bearing lines sum to
 30-105% of NAV (Overnight funds hold repo/TREPS without ISINs and are rejected, correctly). Matching to our
 schemes is by normalised name; duplicates (original + segregated-portfolio scheme) resolve to the lowest AMFI code.
-Not done: HDFC (blocks scripted access), SBI and ICICI (files load via JavaScript). Baroda BNP Paribas was
-attempted and abandoned: its dial-image anchor did not converge to a small shared set of images the way
-Nippon's and DSP's did (every sheet resolved to a different hash), meaning the anchor heuristic is picking
-up the wrong image for this AMC's layout. Rather than guess, it is left undone pending a proper look at its
-drawing XML. Every other AMC is undone.
+Not done: HDFC (blocks scripted access), SBI and ICICI (files load via JavaScript). Baroda BNP Paribas uses a different format entirely: both dials plus their captions are baked into ONE
+image per scheme (not a small reusable set), alongside a separate debt Potential-Risk-Class matrix image.
+There is no hash table to build; each scheme's image was read by eye directly and the level recorded in
+`BARODA_RISK_AUG2026` in `amc_portfolio.py`. This means, unlike Nippon/DSP, Baroda's mapping does NOT
+self-update next month — it must be re-read by hand from each new month's file. Every other AMC is undone.
 
 ## Known limits
 - Returns are past, point-to-point, from funds that survive today (survivorship bias).
