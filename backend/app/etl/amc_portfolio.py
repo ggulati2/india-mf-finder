@@ -192,6 +192,13 @@ DIALS = {
         "42c68ddb92ce0a37089834c6ac3010b6": "Low to Moderate",
         "d914d1cd87b7f6a0cbf7908d3ea28644": "Low",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure (unifimf.com, one file per scheme).
+    # Unifi Dynamic Asset Allocation Fund's dial (hash 645e5732062dbcddde60ece5b1edb912) is
+    # deliberately NOT in this table: its needle sits right at the Moderate/Moderately-High
+    # boundary and is genuinely ambiguous by eye, so it is left unrecognised rather than guessed.
+    "unifi": {
+        "fbc6b986fb3a10d4c74676c5bd5f7536": "Very High",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -593,6 +600,23 @@ def parse_single_scheme_workbook_hashed(path: str, amc: str) -> List[dict]:
     scheme = re.split(r"\s+\(", name.strip(), 1)[0]
     h = dials.get(wb.sheetnames[0])
     return [{"sheet": wb.sheetnames[0], "scheme": scheme, "holdings": parse_holdings(ws),
+            "riskometer": table.get(h) if h else None, "riskometer_unrecognised": bool(h) and h not in table}]
+
+
+def parse_single_scheme_workbook_hashed_generic(path: str, amc: str) -> List[dict]:
+    """Like parse_single_scheme_workbook_hashed, but for an AMC (e.g. Unifi) whose sheet layout
+    doesn't follow ICICI's fixed row order - uses the same general find_scheme_name/
+    clean_scheme_name machinery as the multi-sheet parse_workbook instead."""
+    z = zipfile.ZipFile(path)
+    dials = _sheet_dials(z)
+    table = DIALS[amc]
+    wb = _load_workbook(path, read_only=True, data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    name = find_scheme_name(ws)
+    if not name:
+        return []
+    h = dials.get(wb.sheetnames[0])
+    return [{"sheet": wb.sheetnames[0], "scheme": clean_scheme_name(name), "holdings": parse_holdings(ws),
             "riskometer": table.get(h) if h else None, "riskometer_unrecognised": bool(h) and h not in table}]
 
 
