@@ -17,7 +17,7 @@ services:
           name: india-mf-db
           property: connectionString
       - key: REDIS_URL
-        value: redis://red-xxx:6379/0   # optional — leave empty to run without Redis on free tier
+        value:   # optional — leave empty to run without Redis on free tier
         sync: false
       - key: OPENAI_API_KEY
         sync: false                      # set in Render dashboard → Environment
