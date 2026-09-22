@@ -10,6 +10,7 @@ from app.api.chat import router as chat_router
 from app.api.holistic import router as holistic_router
 import logging
 import asyncio
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -57,9 +58,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+_cors_origins_env = os.getenv("CORS_ORIGINS", "")
+_cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()] or ["http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000","https://app.mydomain.com","https://*.vercel.app"],
+    allow_origins=_cors_origins,
+    # allow_origins can't glob-match "*.vercel.app"; this regex covers Vercel preview/prod URLs.
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

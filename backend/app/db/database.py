@@ -7,8 +7,16 @@ from typing import Generator, Iterator
 
 Base = declarative_base()
 
-# Database connection string
+# Database connection string. requirements.txt installs psycopg (v3), not psycopg2, but a bare
+# "postgresql://" URL makes SQLAlchemy default to the psycopg2 dialect, which isn't installed
+# anywhere (locally or in the Render Dockerfile) — so normalize to the psycopg3 dialect explicitly.
+# Neon/Render/Heroku-style providers also sometimes hand out "postgres://", which SQLAlchemy 2.x
+# rejects outright, so that gets normalized too.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mfinder.db")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 # Create engine — Neon/Supabase serverless needs small pool + SSL
 if DATABASE_URL.startswith("sqlite"):

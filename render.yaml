@@ -4,7 +4,7 @@ services:
     runtime: docker
     plan: free
     region: singapore          # closest to India; change to oregon/frankfurt if needed
-    branch: main
+    branch: master
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /healthz
@@ -13,24 +13,12 @@ services:
       - key: PYTHONUNBUFFERED
         value: 1
       - key: DATABASE_URL
-        fromDatabase:
-          name: india-mf-db
-          property: connectionString
+        sync: false                      # set in Render dashboard → Environment: Neon pooled connection string
       - key: REDIS_URL
-        value:   # optional — leave empty to run without Redis on free tier
-        sync: false
+        sync: false                      # optional — leave empty to run without Redis on free tier
       - key: OPENAI_API_KEY
         sync: false                      # set in Render dashboard → Environment
       - key: NEXT_PUBLIC_API_URL
         value: https://india-mf-finder-api.onrender.com
       - key: CORS_ORIGINS
         value: https://app.mydomain.com,https://india-mf-finder.vercel.app
-
-databases:
-  - name: india-mf-db
-    plan: free
-    databaseName: mfinder
-    user: mfinder
-    # NOTE: Prefer Neon over Render free DB for serverless pooling (see DEPLOYMENT.md).
-    # If using Neon, delete this block and set DATABASE_URL manually to your Neon
-    # pooled connection string (ends with ?sslmode=require&pather=...).

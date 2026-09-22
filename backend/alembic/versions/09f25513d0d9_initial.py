@@ -53,8 +53,18 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["scheme_id"], ["mutual_fund_schemes.scheme_id"], ),
         sa.PrimaryKeyConstraint("scheme_id", "computed_date", "time_horizon_years"),
     )
-    # TimescaleDB hypertable — no-op on plain Postgres/Neon
-    op.execute(sa.text("SELECT create_hypertable('scheme_nav_data', 'time', if_not_exists => TRUE, migrate_data => TRUE)"))
+    # TimescaleDB hypertable. `create_hypertable` doesn't exist at all on plain Postgres/Neon
+    # (no timescaledb extension) — calling it unconditionally errors the whole migration, it
+    # is not a no-op. Guard it so this genuinely no-ops there and only converts the table on a
+    # real TimescaleDB instance (e.g. local docker-compose, which uses the timescaledb image).
+    op.execute(sa.text("""
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'timescaledb') THEN
+                PERFORM create_hypertable('scheme_nav_data', 'time', if_not_exists => TRUE, migrate_data => TRUE);
+            END IF;
+        END $$;
+    """))
 
 def downgrade() -> None:
     op.drop_table("scheme_analytics")

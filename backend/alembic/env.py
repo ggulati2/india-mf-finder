@@ -10,13 +10,14 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# use DATABASE_URL env var; fallback to alembic.ini
-db_url = os.getenv("DATABASE_URL")
-if db_url:
-    config.set_main_option("sqlalchemy.url", db_url)
-
-from app.db.database import Base
+from app.db.database import Base, DATABASE_URL
 from app.db import models  # noqa: F401 — ensure models are imported
+
+# Use the already-normalized DATABASE_URL from app.db.database (handles the postgres:// /
+# postgresql:// -> postgresql+psycopg:// rewrite needed since only psycopg v3 is installed,
+# not psycopg2) instead of the raw env var; fall back to alembic.ini if unset.
+if DATABASE_URL:
+    config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 target_metadata = Base.metadata
 

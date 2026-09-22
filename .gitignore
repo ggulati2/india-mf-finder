@@ -64,3 +64,5 @@ wheels/
 .vscode/
 .idea/
 backend/data/
+.neon
+node_modules/
