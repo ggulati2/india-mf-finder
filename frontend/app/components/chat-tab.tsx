@@ -37,38 +37,38 @@ export function ChatTab() {
   };
 
   return (
-    <div className="glass-card flex flex-col h-[640px] relative overflow-hidden">
-      <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center gap-2">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center text-white">✦</div>
+    <div className="card flex flex-col h-[640px] relative overflow-hidden">
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">✦</div>
         <div>
-          <h3 className="font-bold text-gray-800 dark:text-gray-100">Ask Me</h3>
-          <p className="text-xs text-gray-500">Ask about SIP vs Lump Sum, categories, risk, OCS — grounded in our fund universe</p>
+          <h3 className="font-bold text-slate-900 dark:text-slate-100">Ask Me</h3>
+          <p className="text-xs text-slate-500">Ask about SIP vs Lump Sum, categories, risk, OCS — grounded in our fund universe</p>
         </div>
-        <span className="ml-auto text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full border border-green-200">Direct Growth only</span>
+        <span className="ml-auto text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-1 rounded-md border border-emerald-200 dark:border-emerald-900 font-medium">Direct Growth only</span>
       </div>
 
       {/* Coming Soon overlay */}
-      <div className="absolute inset-0 top-[65px] z-10 flex items-center justify-center bg-white/80 dark:bg-gray-900/85 backdrop-blur-sm">
+      <div className="absolute inset-0 top-[65px] z-10 flex items-center justify-center bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm">
         <div className="text-center px-6">
-          <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl mx-auto mb-4">✦</div>
-          <h4 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1">Coming Soon</h4>
-          <p className="text-sm text-gray-500 max-w-sm">Ask Me is still in development. Soon you'll be able to chat about SIP vs Lump Sum, risk, and fund picks in plain language.</p>
+          <div className="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-2xl mx-auto mb-4">✦</div>
+          <h4 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-1">Coming Soon</h4>
+          <p className="text-sm text-slate-500 max-w-sm">Ask Me is still in development. Soon you'll be able to chat about SIP vs Lump Sum, risk, and fund picks in plain language.</p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pointer-events-none select-none opacity-40">
         {msgs.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-indigo-600 text-white" : "bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700"}`}>
+            <div className={`max-w-[85%] rounded-xl px-4 py-3 text-sm whitespace-pre-wrap ${m.role === "user" ? "bg-indigo-600 text-white" : "bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"}`}>
               {m.content}
             </div>
           </div>
         ))}
         <div ref={endRef} />
       </div>
-      <div className="p-3 border-t border-gray-100 dark:border-gray-800 flex gap-2">
-        <input disabled value={input} onChange={(e)=>setInput(e.target.value)} onKeyDown={(e)=> e.key==="Enter" && send()} placeholder="Coming soon…" className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 px-4 py-3 text-sm cursor-not-allowed" />
-        <button disabled className="rounded-xl bg-indigo-600 text-white px-5 py-3 text-sm font-semibold opacity-50 cursor-not-allowed">Send</button>
+      <div className="p-3 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+        <input disabled value={input} onChange={(e)=>setInput(e.target.value)} onKeyDown={(e)=> e.key==="Enter" && send()} placeholder="Coming soon…" className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-4 py-3 text-sm cursor-not-allowed" />
+        <button disabled className="btn-primary px-5 py-3 text-sm opacity-50 cursor-not-allowed">Send</button>
       </div>
     </div>
   );

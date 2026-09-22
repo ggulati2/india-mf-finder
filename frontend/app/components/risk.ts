@@ -9,7 +9,7 @@ const STYLES: Record<string, string> = {
   "Very High": "text-red-700",
 };
 
-export function riskColor(level?: string) { return (level && STYLES[level]) || "text-gray-500"; }
+export function riskColor(level?: string) { return (level && STYLES[level]) || "text-slate-500"; }
 export function riskText(risk?: RiskInfo | null) { return risk?.level ?? "Unknown"; }
 export function fmtTer(v: number | null | undefined) { return v == null ? "n/a" : `${v.toFixed(2)}%`; }
 export const RISK_HELP = "Estimated from this fund's past volatility and worst fall, and never lower than its SEBI category implies. Not the official SEBI Riskometer.";

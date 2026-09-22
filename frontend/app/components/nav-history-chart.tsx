@@ -13,14 +13,14 @@ export function NavHistoryChart({ schemeId, schemeName }: { schemeId: number; sc
       .then(d => setData(d.points || []))
       .finally(() => setLoading(false));
   }, [schemeId, years]);
-  if (loading) return <div className="h-48 animate-pulse bg-gray-100 rounded-xl" />;
-  if (!data.length) return <div className="text-sm text-gray-500">No historic NAV available.</div>;
+  if (loading) return <div className="h-48 animate-pulse bg-slate-100 rounded-xl" />;
+  if (!data.length) return <div className="text-sm text-slate-500">No historic NAV available.</div>;
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <h4 className="text-sm font-semibold">{schemeName} — NAV ({years}Y)</h4>
         <div className="flex gap-1">
-          {[1,3,5].map(y=> <button key={y} onClick={()=>setYears(y)} className={`text-xs px-2 py-1 rounded-full ${years===y ? "bg-indigo-600 text-white" : "bg-gray-100"}`}>{y}Y</button>)}
+          {[1,3,5].map(y=> <button key={y} onClick={()=>setYears(y)} className={`text-xs px-2 py-1 rounded-full ${years===y ? "bg-indigo-600 text-white" : "bg-slate-100"}`}>{y}Y</button>)}
         </div>
       </div>
       <div className="h-48">
@@ -33,7 +33,7 @@ export function NavHistoryChart({ schemeId, schemeName }: { schemeId: number; sc
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-xs text-gray-400 mt-1">{data.length} daily points • Source: mfapi.in / AMFI</p>
+      <p className="text-xs text-slate-400 mt-1">{data.length} daily points • Source: mfapi.in / AMFI</p>
     </div>
   );
 }

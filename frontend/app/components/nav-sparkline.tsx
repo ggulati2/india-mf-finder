@@ -35,7 +35,7 @@ export function NavSparkline({ schemeId, years }: { schemeId: number; years: num
   const color = up ? "#16a34a" : "#dc2626";
   return (
     <div ref={ref} className="mt-3" onClick={(e) => e.stopPropagation()}>
-      <div className="flex justify-between text-[10px] text-gray-400 mb-0.5">
+      <div className="flex justify-between text-[10px] text-slate-400 mb-0.5">
         <span>Growth of ₹100 · past {years}Y</span>
         {pts && pts.length > 1 && <span className={up ? "text-green-600" : "text-red-600"}>₹100 → ₹{pts[pts.length - 1].value.toFixed(0)}</span>}
       </div>
@@ -54,9 +54,9 @@ export function NavSparkline({ schemeId, years }: { schemeId: number; years: num
             </AreaChart>
           </ResponsiveContainer>
         ) : failed ? (
-          <div className="h-full flex items-center justify-center text-[10px] text-gray-400">History unavailable</div>
+          <div className="h-full flex items-center justify-center text-[10px] text-slate-400">History unavailable</div>
         ) : (
-          <div className="h-full animate-pulse bg-gray-100 dark:bg-gray-800 rounded" />
+          <div className="h-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded" />
         )}
       </div>
     </div>

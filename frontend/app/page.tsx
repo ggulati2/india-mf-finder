@@ -84,48 +84,46 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900/30">
-      {/* Hero Header */}
-      <header className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white rounded-full blur-3xl -translate-y-1/2"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white rounded-full blur-3xl translate-y-1/2"></div>
-        </div>
-        <div className="relative max-w-[1600px] mx-auto px-6 py-12 md:py-16">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0/24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-            <span className="text-sm font-medium text-blue-100 tracking-wide uppercase">India Mutual Fund Finder</span>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      {/* Top bar */}
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4.5 h-4.5 text-white" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold mb-3 text-white">
-            AI-Powered Fund
-            <br />
-            <span className="text-blue-100">Recommendations</span>
-          </h1>
-          <p className="text-lg text-blue-50 max-w-2xl">
-            Discover top-performing mutual funds with objective composite scoring, risk-adjusted analytics, and smart portfolio analysis.
-          </p>
+          <span className="font-semibold text-slate-900 dark:text-white tracking-tight">India Mutual Fund Finder</span>
         </div>
       </header>
 
+      {/* Hero */}
+      <section className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="max-w-[1600px] mx-auto px-6 py-14 md:py-20">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-4 max-w-2xl">
+            Objective, data-driven <span className="text-indigo-600">fund recommendations</span>
+          </h1>
+          <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl">
+            Composite scoring and risk-adjusted analytics across Direct Growth mutual funds, built on official AMFI data.
+          </p>
+        </div>
+      </section>
+
       {/* Disclaimer Banner */}
-      <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/50">
-        <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-start gap-2 text-sm text-amber-800 dark:text-amber-200">
-          <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+      <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/50">
+        <div className="max-w-[1600px] mx-auto px-6 py-2.5 flex items-start gap-2 text-sm text-amber-800 dark:text-amber-300">
+          <svg className="w-4.5 h-4.5 flex-shrink-0 mt-0.5" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
           <p><span className="font-semibold">Not financial advice.</span> This tool is for informational purposes only and does not constitute investment advice. Please do your own research and consult a SEBI-registered adviser before investing.</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="max-w-[1600px] mx-auto px-6 pt-6">
-        <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
-          <button onClick={()=>setActiveTab("discover")} className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab==="discover" ? "bg-white dark:bg-gray-700 shadow text-indigo-600" : "text-gray-500"}`}>Discover</button>
-          <button onClick={()=>setActiveTab("chat")} className={`px-5 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-1.5 ${activeTab==="chat" ? "bg-white dark:bg-gray-700 shadow text-indigo-600" : "text-gray-500"}`}>
+        <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg w-fit">
+          <button onClick={()=>setActiveTab("discover")} className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${activeTab==="discover" ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}>Discover</button>
+          <button onClick={()=>setActiveTab("chat")} className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors flex items-center gap-1.5 ${activeTab==="chat" ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}>
             Ask Me
-            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">SOON</span>
+            <span className="text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 px-1.5 py-0.5 rounded">SOON</span>
           </button>
         </div>
       </div>
@@ -137,67 +135,67 @@ export default function Dashboard() {
         ) : (
           <>
         {/* Investment Parameters — lean landing, only applicable funds after Find */}
-        <section className="glass-card p-6">
+        <section className="card p-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg flex items-center justify-center">
               <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0/24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
             </div>
-            <h3 className="font-bold text-gray-800 dark:text-gray-100">Tell us about your investment</h3>
-            <span className="text-xs text-gray-400 ml-2">We’ll show only funds that match</span>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">Tell us about your investment</h3>
+            <span className="text-xs text-slate-400 ml-2">We’ll show only funds that match</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Amount (₹)</label>
-              <input type="number" value={investmentAmount} onChange={(e)=>setInvestmentAmount(Number(e.target.value))} placeholder="100000" className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm" />
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Amount (₹)</label>
+              <input type="number" value={investmentAmount} onChange={(e)=>setInvestmentAmount(Number(e.target.value))} placeholder="100000" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Mode</label>
-              <select value={investmentMode} onChange={(e)=>setInvestmentMode(e.target.value as any)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Mode</label>
+              <select value={investmentMode} onChange={(e)=>setInvestmentMode(e.target.value as any)} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
                 <option value="lump-sum">Lump Sum</option>
                 <option value="sip">SIP</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Horizon</label>
-              <select value={horizonYears} onChange={(e)=>setHorizonYears(Number(e.target.value))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Horizon</label>
+              <select value={horizonYears} onChange={(e)=>setHorizonYears(Number(e.target.value))} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
                 <option value={1}>1 Year</option><option value={3}>3 Years</option><option value={5}>5 Years</option><option value={10}>10 Years</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Risk</label>
-              <select value={riskAppetite} onChange={(e)=>setRiskAppetite(e.target.value as any)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Risk</label>
+              <select value={riskAppetite} onChange={(e)=>setRiskAppetite(e.target.value as any)} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
                 <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Category</label>
-              <select value={category} onChange={(e)=>setCategory(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Category</label>
+              <select value={category} onChange={(e)=>setCategory(e.target.value)} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
                 <option value="">All</option><option value="Large Cap">Large Cap</option><option value="Mid Cap">Mid Cap</option><option value="Small Cap">Small Cap</option><option value="Flexi Cap">Flexi Cap</option><option value="ELSS">ELSS</option><option value="Hybrid">Hybrid</option><option value="Debt">Debt</option><option value="Index">Index</option>
               </select>
             </div>
             <div className="flex items-end">
-              <button onClick={fetchFunds} className="w-full rounded-xl bg-indigo-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-indigo-700 transition">Find Funds →</button>
+              <button onClick={fetchFunds} className="w-full rounded-lg bg-indigo-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-indigo-700 transition-colors">Find Funds →</button>
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-3">No funds are loaded until you click Find Funds — faster landing, only applicable funds shown. Uses Direct Growth, OCS with SIP/Lump adjustments.</p>
+          <p className="text-xs text-slate-400 mt-3">No funds are loaded until you click Find Funds — faster landing, only applicable funds shown. Uses Direct Growth, OCS with SIP/Lump adjustments.</p>
         </section>
 
         {/* Sort & Filter Sliders — only after search to keep landing lean */}
         {hasSearched && (
-        <section className="glass-card p-5">
+        <section className="card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-amber-50 dark:bg-amber-950/40 rounded-lg flex items-center justify-center">
               <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0/24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
             </div>
-            <h3 className="font-bold text-gray-800 dark:text-gray-100">Sort & Filter</h3>
-            <span className="text-xs text-gray-400 ml-2">{filteredFunds.length} of {funds.length} shown</span>
-            <label className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300" title="Hide funds where any data check is missing (for example expense ratio). Click Find Funds again to apply."><input type="checkbox" checked={completeOnly} onChange={(e)=>setCompleteOnly(e.target.checked)} />Only complete data</label>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">Sort & Filter</h3>
+            <span className="text-xs text-slate-400 ml-2">{filteredFunds.length} of {funds.length} shown</span>
+            <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300" title="Hide funds where any data check is missing (for example expense ratio). Click Find Funds again to apply."><input type="checkbox" checked={completeOnly} onChange={(e)=>setCompleteOnly(e.target.checked)} />Only complete data</label>
             <button onClick={()=>{setMinScore(0);setMinReturn(0);setMinStars(1);setSteadinessFilter("all");setAmcFilter("all");setSortBy("overall");}} className="ml-auto text-xs text-indigo-600 hover:underline">Reset</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Sort by</label>
-              <select value={sortBy} onChange={(e)=>setSortBy(e.target.value as any)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Sort by</label>
+              <select value={sortBy} onChange={(e)=>setSortBy(e.target.value as any)} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
                 <option value="overall">Overall Score</option>
                 <option value="stars">Star Rating</option>
                 <option value="return">Annual Return</option>
@@ -205,30 +203,30 @@ export default function Dashboard() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">AMC</label>
-              <select value={amcFilter} onChange={(e)=>setAmcFilter(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">AMC</label>
+              <select value={amcFilter} onChange={(e)=>setAmcFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
                 <option value="all">All AMCs</option>
                 {amcOptions.map((amc) => (<option key={amc} value={amc}>{amc}</option>))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Overall Score: {minScore}</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Min Overall Score: {minScore}</label>
               <input type="range" min={0} max={100} value={minScore} onChange={(e)=>setMinScore(Number(e.target.value))} className="w-full accent-indigo-600" />
-              <div className="flex justify-between text-xs text-gray-400"><span>0</span><span>100</span></div>
+              <div className="flex justify-between text-xs text-slate-400"><span>0</span><span>100</span></div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Stars: {minStars}★</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Min Stars: {minStars}★</label>
               <input type="range" min={1} max={5} step={1} value={minStars} onChange={(e)=>setMinStars(Number(e.target.value))} className="w-full accent-amber-500" />
-              <div className="flex justify-between text-xs text-gray-400"><span>1★</span><span>5★</span></div>
+              <div className="flex justify-between text-xs text-slate-400"><span>1★</span><span>5★</span></div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Min Annual Return: {minReturn}%</label>
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Min Annual Return: {minReturn}%</label>
               <input type="range" min={0} max={25} value={minReturn} onChange={(e)=>setMinReturn(Number(e.target.value))} className="w-full accent-green-600" />
-              <div className="flex justify-between text-xs text-gray-400"><span>0%</span><span>25%</span></div>
+              <div className="flex justify-between text-xs text-slate-400"><span>0%</span><span>25%</span></div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Steadiness</label>
-              <select value={steadinessFilter} onChange={(e)=>setSteadinessFilter(e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Steadiness</label>
+              <select value={steadinessFilter} onChange={(e)=>setSteadinessFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
                 <option value="all">All</option>
                 <option value="very">Very steady</option>
                 <option value="steady">Steady</option>
@@ -241,13 +239,13 @@ export default function Dashboard() {
         )}
 
         {!hasSearched && (
-          <div className="glass-card p-12 text-center">
-            <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="card p-12 text-center">
+            <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0/24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Ready to find your best funds?</h3>
-            <p className="text-gray-500">Choose amount, horizon, risk and category above, then click <span className="font-semibold text-indigo-600">Find Funds</span>.</p>
-            <p className="text-xs text-gray-400 mt-2">We’ll load only funds that match — faster, focused, holistic.</p>
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2">Ready to find your best funds?</h3>
+            <p className="text-slate-500">Choose amount, horizon, risk and category above, then click <span className="font-semibold text-indigo-600">Find Funds</span>.</p>
+            <p className="text-xs text-slate-400 mt-2">We’ll load only funds that match — faster, focused, holistic.</p>
           </div>
         )}
 
@@ -255,21 +253,21 @@ export default function Dashboard() {
         {hasSearched && (
         <>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass-card p-4">
-            <p className="text-sm text-gray-500 mb-1">Funds Shown</p>
-            <p className="text-2xl font-bold text-blue-600">{sortedFunds.length}<span className="text-sm font-normal text-gray-400">/{funds.length}</span></p>
+          <div className="card p-4">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Funds Shown</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white tnum">{sortedFunds.length}<span className="text-sm font-normal text-slate-400">/{funds.length}</span></p>
           </div>
-          <div className="glass-card p-4">
-            <p className="text-sm text-gray-500 mb-1">Mode</p>
-            <p className="text-2xl font-bold text-indigo-600 capitalize">{investmentMode}</p>
+          <div className="card p-4">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Mode</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white capitalize">{investmentMode}</p>
           </div>
-          <div className="glass-card p-4">
-            <p className="text-sm text-gray-500 mb-1">Risk Level</p>
-            <p className="text-2xl font-bold text-amber-600 capitalize">{riskAppetite}</p>
+          <div className="card p-4">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Risk Level</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white capitalize">{riskAppetite}</p>
           </div>
-          <div className="glass-card p-4">
-            <p className="text-sm text-gray-500 mb-1">Selected</p>
-            <p className="text-2xl font-bold text-purple-600">{selectedFunds.length}</p>
+          <div className="card p-4">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Selected</p>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white tnum">{selectedFunds.length}</p>
           </div>
         </div>
 
@@ -277,29 +275,29 @@ export default function Dashboard() {
           {/* Fund Cards */}
           <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Recommended Funds</h2>
-              <span className="text-sm text-gray-500">Click to select for comparison • Sorted by {sortBy}</span>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Recommended Funds</h2>
+              <span className="text-sm text-slate-500">Click to select for comparison • Sorted by {sortBy}</span>
             </div>
 
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="glass-card p-6 animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-                    <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-                    <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+                  <div key={i} className="card p-6 animate-pulse">
+                    <div className="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
+                    <div className="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
+                    <div className="h-8 bg-slate-200 rounded w-1/3"></div>
                   </div>
                 ))}
               </div>
             ) : sortedFunds.length === 0 ? (
-              <div className="glass-card p-12 text-center">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0/24 24">
+              <div className="card p-12 text-center">
+                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0/24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Funds Match Filters</h3>
-                <p className="text-gray-500">Try lowering sliders or changing category.</p>
+                <h3 className="text-lg font-semibold text-slate-600 mb-2">No Funds Match Filters</h3>
+                <p className="text-slate-500">Try lowering sliders or changing category.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -317,13 +315,13 @@ export default function Dashboard() {
 
           {/* Right Sidebar */}
           <div className="space-y-6">
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Portfolio Analytics</h2>
+            <div className="card p-6">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">Portfolio Analytics</h2>
               <RollingReturnsChart funds={sortedFunds} selectedFunds={selectedFunds} />
             </div>
 
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Fund Comparison</h2>
+            <div className="card p-6">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">Fund Comparison</h2>
               <ComparisonTable funds={sortedFunds} selectedFunds={selectedFunds} />
             </div>
           </div>
@@ -332,13 +330,13 @@ export default function Dashboard() {
         {/* Historic NAV Chart + Holistic for first selected fund */}
         {selectedFunds.length >= 1 && (
           <>
-            <section className="glass-card p-6">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Historic NAV — Detailed History</h2>
+            <section className="card p-6">
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-4">Historic NAV — Detailed History</h2>
               {(() => {
                 const f = sortedFunds.find(x => x.scheme_id === selectedFunds[0]) || funds.find(x => x.scheme_id === selectedFunds[0]);
                 return f ? <NavHistoryChart schemeId={f.scheme_id} schemeName={f.scheme_name} /> : null;
               })()}
-              <p className="text-xs text-gray-400 mt-2">Daily NAV from mfapi.in / AMFI • Use tabs 1Y/3Y/5Y • Data powers rolling returns, Sharpe, Sortino in OCS</p>
+              <p className="text-xs text-slate-400 mt-2">Daily NAV from mfapi.in / AMFI • Use tabs 1Y/3Y/5Y • Data powers rolling returns, Sharpe, Sortino in OCS</p>
             </section>
             <section>
               {(() => {
@@ -368,12 +366,12 @@ export default function Dashboard() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-800 mt-12">
-        <div className="max-w-[1600px] mx-auto px-6 py-6 flex items-center justify-between text-sm text-gray-500">
+      <footer className="border-t border-slate-200 dark:border-slate-800 mt-12">
+        <div className="max-w-[1600px] mx-auto px-6 py-6 flex items-center justify-between text-sm text-slate-500">
           <p>© 2024 India Mutual Fund Finder</p>
           <p>AI-Powered Analytics Engine</p>
         </div>
-        <p className="max-w-[1600px] mx-auto px-6 pb-6 text-xs text-gray-400">
+        <p className="max-w-[1600px] mx-auto px-6 pb-6 text-xs text-slate-400">
           Information only, not investment advice. Returns are computed from official AMFI NAVs of funds that exist today, so they exclude funds that were closed or merged (survivorship bias) and reflect past market conditions; they are not a forecast. Risk levels are our estimate from past volatility, not the SEBI Riskometer published by each fund house. Expense ratios come from the AMFI disclosure where a match was found. Read the scheme documents and consider a SEBI-registered adviser before investing.
         </p>
       </footer>

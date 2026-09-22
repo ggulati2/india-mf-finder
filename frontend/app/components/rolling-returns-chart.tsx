@@ -23,7 +23,7 @@ export function RollingReturnsChart({ funds, selectedFunds }: RollingReturnsChar
   return (
     <div className="h-64">
       {data.length === 0 ? (
-        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+        <div className="flex items-center justify-center h-full text-slate-400 text-sm">
           Select funds to see analytics
         </div>
       ) : (
