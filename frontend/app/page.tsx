@@ -85,29 +85,20 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* Top bar */}
+      {/* Header */}
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <svg className="w-4.5 h-4.5 text-white" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="max-w-[1600px] mx-auto px-6 py-5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-white" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
-          <span className="font-semibold text-slate-900 dark:text-white tracking-tight">India Mutual Fund Finder</span>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">India Mutual Fund Finder</h1>
+            <p className="text-xs text-slate-400">Objective, data-driven fund recommendations from official AMFI data</p>
+          </div>
         </div>
       </header>
-
-      {/* Hero */}
-      <section className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="max-w-[1600px] mx-auto px-6 py-14 md:py-20">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 dark:text-white mb-4 max-w-2xl">
-            Objective, data-driven <span className="text-indigo-600">fund recommendations</span>
-          </h1>
-          <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl">
-            Composite scoring and risk-adjusted analytics across Direct Growth mutual funds, built on official AMFI data.
-          </p>
-        </div>
-      </section>
 
       {/* Disclaimer Banner */}
       <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-900/50">
