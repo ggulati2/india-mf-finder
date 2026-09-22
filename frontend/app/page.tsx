@@ -16,7 +16,7 @@ export default function Dashboard() {
   const [funds, setFunds] = useState<Fund[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [investmentAmount, setInvestmentAmount] = useState<number>(100000);
+  const [investmentAmount, setInvestmentAmount] = useState<number | "">("");
   const [horizonYears, setHorizonYears] = useState<number>(5);
   const [investmentMode, setInvestmentMode] = useState<"lump-sum" | "sip">("lump-sum");
   const [riskAppetite, setRiskAppetite] = useState<"low" | "medium" | "high">("medium");
@@ -36,7 +36,7 @@ export default function Dashboard() {
     setHasSearched(true);
     try {
       const params = new URLSearchParams({
-        investment_amount: String(investmentAmount),
+        investment_amount: String(investmentAmount || 100000),
         investment_mode: investmentMode,
         horizon_years: String(horizonYears),
         risk_appetite: riskAppetite,
@@ -147,7 +147,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Amount (₹)</label>
-              <input type="number" value={investmentAmount} onChange={(e)=>setInvestmentAmount(Number(e.target.value))} placeholder="100000" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+              <input type="number" value={investmentAmount} onChange={(e)=>{ const v = e.target.value; setInvestmentAmount(v === "" ? "" : Number(v)); }} placeholder="e.g. 100000" className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Mode</label>
