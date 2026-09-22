@@ -10,7 +10,7 @@ official source or clearly labelled as an estimate. Unknown is shown as "n/a", n
 | Expense ratio (TER) | AMFI TER API (`/api/populate-te-rdata-revised`, one Excel per fund house), latest daily row | 1,441 of 1,481 active schemes (97%). Matched by normalised name; no match = "n/a", no fuzzy guessing. Falls back to captn3m0's CSV, which lags AMFI (e.g. Axis Small Cap: CSV 0.54% vs AMFI 0.71% on 18 Sep 2026) |
 | Benchmark (beta, capture) | Nifty 50 price index, Yahoo Finance | Excludes dividends; cached daily in `backend/data/` |
 | Risk level | Official SEBI Riskometer where imported, else a conservative estimate | See below. Every fund shows which one it is |
-| Holdings / sector mix | AMC monthly portfolio disclosure (official) | Currently Nippon India (107), DSP (62), Baroda BNP Paribas (41), Helios (8), Tata (60), Axis (64), ICICI Prudential (96), Kotak Mahindra (94), Franklin Templeton (36), Motilal Oswal (33), ITI (19) — 11 fund houses, 620 schemes. Others show "not imported yet". Earlier versions showed synthetic data |
+| Holdings / sector mix | AMC monthly portfolio disclosure (official) | 18 fund houses, 635 schemes (~36% of 1,776 active): ICICI Prudential (87), Kotak Mahindra (81), Nippon India (69), Axis (53), DSP (52), Tata (44), Baroda BNP Paribas (39), Franklin Templeton (34), Motilal Oswal (30), Sundaram (29), quant (27), Mahindra Manulife (24), Bajaj Finserv (20), ITI (18), Trust (10), 360 ONE (9), Helios (7), Unifi (2 of 3 - Liquid Fund's file wasn't discoverable). Others show "not imported yet". Earlier versions showed synthetic data |
 
 ## Validation applied to every NAV series (`app/engine/quality.py`)
 - Zero/negative NAVs and isolated one-day spikes that reverse next day are dropped (`repaired_points`).
@@ -85,10 +85,57 @@ Mutual Fund" (just the AMC's own name, which still contains the word "fund"), be
 scheme name on every sheet. Bare "<AMC name> Mutual Fund" lines are now excluded outright, not
 just deprioritised.
 
-Every other AMC is undone. LIC's disclosure link on its own downloads page 404s (stale page cache
-at LIC's end, not ours). Sundaram, Quantum, Choice had no plain file link in the fetched page (need
-proper discovery, e.g. a JS-driven API the way DSP/AMFI needed). Zerodha, Shriram, NJ, Unifi didn't
-show a current monthly-portfolio file in a first pass. Not attempted: the remaining ~45 fund houses.
+### 2026-09-22 second pass: 7 more fund houses
+
+quant, Sundaram, Bajaj Finserv, 360 ONE, Trust, Mahindra Manulife, Unifi - 18 total, 635 schemes.
+AdvisorKhoj's per-AMC mirror
+(`advisorkhoj.com/mutual-funds-research/mutual-fund-portfolio/<AMC>/2026`) unblocked several AMCs
+whose own sites don't expose a plain file link. Real bugs found and fixed this pass (all
+regression-tested against every previously-working AMC before shipping):
+
+- `_sheet_dials` didn't XML-unescape sheet names read from `workbook.xml`, so a sheet name
+  containing `&`/`<`/`>` (e.g. quant's "qL&MF") never matched openpyxl's decoded name and silently
+  lost its Riskometer to a dict-key miss.
+- `parse_holdings` had no stop condition, so it read straight through an AMC's real "Grand Total"
+  line into unrelated trailing content - Sundaram appends a legacy defaulted-CP recovery-accounting
+  footnote there whose own mini-header coincidentally lines up with the "% to NAV" column, once
+  producing a nonsense 212%-of-NAV holding and once corrupting a whole sheet's fraction-vs-percent
+  scale detection. Now stops at "Grand Total"/"Total Portfolio", plus a per-row cap (no single
+  holding can exceed the portfolio's own 105% bound).
+- `norm_name()` didn't equate a cap-size term written as one word vs two ("Midcap" vs "Mid Cap",
+  "Flexicap" vs "Flexi Cap") between an AMC's own disclosure and its AMFI-registered name.
+- openpyxl only decides if a file is readable from its **extension**, never its content - Bajaj
+  Finserv publishes modern XLSX bytes under a stale `.xls` URL, so every load failed outright
+  despite the file being perfectly valid. Added `_load_workbook()`, which reads into a BytesIO
+  buffer first, sidestepping the extension check entirely.
+- The dial anchor-position sort used only whole-cell (row, col), discarding the sub-cell pixel
+  offset - so two images sharing one anchor cell (Bajaj) fell back to comparing embedded filenames
+  (meaningless) and picked the wrong one. Fixed by using (row, col) first, pixel offset only as a
+  same-cell tie-breaker - proven against a second case (360 ONE) where getting that priority order
+  backwards regressed a different sheet.
+- `_sheet_dials` had no minimum image-size filter, so a tiny 2 KB decorative element (not a dial at
+  all) beat the real ~13 KB dial purely on being topmost. Filtered candidates under 5 KB.
+- The ISIN-hits floor for trusting a detected column shift (5) was too strict for a small,
+  legitimately concentrated debt fund (Bajaj Finserv Gilt Fund: exactly 4 securities) - lowered to 3.
+- `clean_scheme_name()` only stripped a trailing parenthetical or "as on <date>", not a trailing
+  description after " - " (360 ONE bakes the full SEBI category/risk text after a dash, where our
+  AMFI-sourced names use that same dash for "- Direct Plan - Growth").
+- `find_scheme_name()`'s "prefer a Fund/Plan/Scheme/ETF candidate" rule didn't recognise "FOF"
+  (fund-of-funds) as equivalent to "Fund", so a genuine FoF scheme's real name lost to a later
+  row - its one holding, the underlying fund it invests in, which (like almost any FoF's holding)
+  itself contains the word "Fund".
+
+Two genuinely ambiguous Riskometer dials were left unrecognised rather than guessed: Unifi Dynamic
+Asset Allocation Fund's needle sits right at the Moderate/Moderately-High boundary.
+
+Known-blocked this pass: Capitalmind, Abakkus and Old Bridge's sites reject the TLS handshake
+outright (works from a real browser, not from this environment - likely WAF fingerprinting of
+non-browser clients, not fixable from here). Edelweiss returns 403 even via AdvisorKhoj's direct
+link to the AMC's own host. Aditya Birla Sun Life's legacy binary `.xls` format was previously
+investigated far enough to extract 24 valid embedded images, but per-sheet correlation was not
+completed (needs OfficeArt/Escher blip-store index parsing). LIC's disclosure link on its own
+downloads page 404s (stale page cache at LIC's end, not ours). Not attempted: the remaining
+~28 fund houses.
 
 ## Known limits
 - Returns are past, point-to-point, from funds that survive today (survivorship bias).
