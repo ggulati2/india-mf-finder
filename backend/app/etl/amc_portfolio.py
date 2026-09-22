@@ -116,6 +116,14 @@ DIALS = {
         "be16cbb8be1f5e12f2e4f53481403ffe": "Low",
         "d3c42615d2ead5ed0b70af77a83366a8": "High",
     },
+    # Verified 2026-09-22 against 31-Aug-2026 disclosure. Only 4 of 6 scheme levels appeared (the
+    # other 2 distinct images were benchmark-labelled and excluded, not guessed as scheme levels).
+    "iti": {
+        "9642e4dc910baf9bd7c2cab91976506a": "Low",
+        "a4fdad39958201315fcbf64c48ca4b88": "Low",
+        "cb329fcfedb25e55ce16527cd1bc6636": "Very High",
+        "eb217fdb024efb3cacbfab27b7ac7137": "Low to Moderate",
+    },
 }
 NIPPON_BASE = "https://mf.nipponindiaim.com"
 NIPPON_PAGE = NIPPON_BASE + "/investor-service/downloads/factsheet-portfolio-and-other-disclosures"
@@ -264,7 +272,8 @@ def parse_holdings(ws) -> List[dict]:
 
 _NAME_BOILERPLATE = re.compile(
     r"^(back to index|portfolio statement|monthly portfolio|registered office|cin\s*:|"
-    r"an open|an close|\(an open|\(an close|investment manager|asset management)", re.I)
+    r"an open|an close|\(an open|\(an close|investment manager|asset management|"
+    r"[a-z ]+ mutual fund\s*\(?live schemes\)?$)", re.I)
 
 
 def find_scheme_name(ws, max_row: int = 10) -> Optional[str]:
@@ -277,8 +286,10 @@ def find_scheme_name(ws, max_row: int = 10) -> Optional[str]:
                  and not _NAME_BOILERPLATE.match(str(c).strip())]
     if not candidates:
         return None
-    fundish = [c for c in candidates if re.search(r"\b(fund|plan|scheme|etf)\b", c, re.I)]
-    return (fundish or candidates)[0]
+    def is_bare_amc_name(c: str) -> bool:
+        return bool(re.match(r"^[A-Za-z. ]+\s+mutual\s+fund$", c.strip(), re.I))
+    fundish = [c for c in candidates if re.search(r"\b(fund|plan|scheme|etf)\b", c, re.I) and not is_bare_amc_name(c)]
+    return (fundish or [c for c in candidates if not is_bare_amc_name(c)] or candidates)[0]
 
 
 def parse_workbook(path: str, amc: str = "nippon") -> List[dict]:
