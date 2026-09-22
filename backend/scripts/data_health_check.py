@@ -26,6 +26,14 @@ Checks, each independent and non-fatal on its own (report-everything, not fail-f
      a direct check catches an incomplete migration), and no blank/placeholder scheme_name.
   7. NAV staleness: active schemes whose latest_nav_date is more than 10 calendar days old.
   8. Holdings staleness: distinct (amc, as_of) combinations, flags any as_of older than ~40 days.
+  9. SchemeNAVData / SchemeAnalytics orphans: rows pointing at a scheme_id with no matching
+     mutual_fund_schemes row at all. refresh_master() only ever deactivates a vanished scheme
+     (is_active=False), it never hard-deletes one, so this should never happen from normal ETL
+     - if it does, something else (a manual edit, a concurrent/competing process touching the
+     same DB, a botched migration) deleted a scheme row without cascading. Found once by hand
+     during the 2026-09-22 Neon migration (scheme_id 99: 13 years of NAV history + analytics,
+     no scheme record) and traced to a stale artifact, not our ETL - this check exists so the
+     next one is caught automatically instead of by chance during a migration.
 
 Exit code 1 if any category found a real problem (excluding informational staleness notes,
 which are expected to accumulate between monthly refreshes and don't indicate corruption).
@@ -35,7 +43,7 @@ from collections import Counter, defaultdict
 from datetime import date, timedelta
 
 from app.db.database import SessionLocal
-from app.db.models import MutualFundScheme, SchemeHolding, SchemeNAVData
+from app.db.models import MutualFundScheme, SchemeAnalytics, SchemeHolding, SchemeNAVData
 
 VALID_RISK_LEVELS = {
     "Low", "Low to Moderate", "Moderate", "Moderately High", "High", "Very High",
@@ -156,6 +164,25 @@ def main():
     old_sources = {src: sorted(dates) for src, dates in as_of_by_source.items() if max(dates) < as_of_cutoff}
     if old_sources:
         notes.append(f"{len(old_sources)} holdings source(s) haven't been refreshed in 40+ days: {list(old_sources)[:8]}")
+
+    # 9. NAV / analytics orphans - a scheme_id with history but no scheme row at all. This
+    # should never happen from normal ETL (refresh_master only deactivates, never deletes), so
+    # unlike check 4's holdings orphans this is always a hard failure, not just a note.
+    from sqlalchemy import text as _sql
+    nav_orphans = [r[0] for r in db.execute(_sql(
+        "SELECT DISTINCT scheme_id FROM scheme_nav_data WHERE scheme_id NOT IN (SELECT scheme_id FROM mutual_fund_schemes)"
+    ))]
+    analytics_orphans = [r[0] for r in db.execute(_sql(
+        "SELECT DISTINCT scheme_id FROM scheme_analytics WHERE scheme_id NOT IN (SELECT scheme_id FROM mutual_fund_schemes)"
+    ))]
+    if nav_orphans or analytics_orphans:
+        problems += 1
+        if nav_orphans:
+            print(f"[FAIL] {len(nav_orphans)} scheme_id(s) have NAV history but no scheme record: {nav_orphans[:10]}")
+        if analytics_orphans:
+            print(f"[FAIL] {len(analytics_orphans)} scheme_id(s) have analytics but no scheme record: {analytics_orphans[:10]}")
+    else:
+        print("[OK]   no NAV/analytics rows orphaned from a missing scheme record")
 
     print()
     if notes:
